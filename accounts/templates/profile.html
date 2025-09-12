@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f4f4f4;
+        }
+        .profile-container {
+            background-color: white;
+            padding: 30px;
+            max-width: 600px;
+            margin: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        .info {
+            margin: 20px 0;
+        }
+        .info strong {
+            display: inline-block;
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <h2>Welcome, {{ user.username }}</h2>
+        <div class="info"><strong>Email:</strong> {{ user.email }}</div>
+        <div class="info"><strong>First name:</strong> {{ user.first_name }}</div>
+        <div class="info"><strong>Last name:</strong> {{ user.last_name }}</div>
+        <div class="info"><strong>Is staff:</strong> {{ user.is_staff }}</div>
+    </div>
+</body>
+</html>
