@@ -1,3 +1,6 @@
+import os
+import uuid
+
 from asgiref.sync import async_to_sync
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -9,7 +12,7 @@ from accounts.permissions import AuthPermission
 from shared.utils import send_post_request
 from shared.views import CustomPagination
 from stt.models import STTModel
-from stt.serializers import AudioSerializer, STTListSerializer
+from stt.serializers import AudioSerializer, STTListSerializer, STTChangeSerializer
 from xazna import settings
 
 
@@ -27,15 +30,20 @@ class STTAPIView(APIView):
             serializer.is_valid(raise_exception=True)
 
             file = serializer.validated_data["file"]
+            ext = os.path.splitext(file.name)[1]
+            original_name =file.name
+            file.name = f"{uuid.uuid4()}{ext}"
 
-            instance = serializer.save(user=request.user, name=file.name)
+            instance = serializer.save(user=request.user, name=original_name)
 
             res = async_to_sync(send_post_request)(file, settings.STT_SERVER, 'file')
             data = res.json()
 
-            STTModel.objects.create(text=data["transcription"], user=request.user, audio=instance)
+            stt_instance = STTModel.objects.create(text=data["transcription"], user=request.user, audio=instance)
 
-            return Response(data={'audio': instance.id, 'text': data["transcription"]}, status=status.HTTP_200_OK)
+            stt = STTListSerializer(stt_instance)
+
+            return Response(data=stt.data, status=status.HTTP_200_OK)
 
         except Exception as error:
             print(error)
@@ -71,6 +79,25 @@ class STTListAPIView(APIView):
 
         return paginator.get_paginated_response(serializer.data)
 
+
+class STTChangeAPIView(APIView):
+    permission_classes = [AuthPermission]
+    @swagger_auto_schema(
+        operation_description="STT change...",
+        request_body=STTChangeSerializer
+    )
+    def put(self, request, stt_id):
+        stt_instance = STTModel.objects.get(id=stt_id, user=request.user)
+
+        serializer = STTChangeSerializer(
+            instance=stt_instance,
+            data=request.data,
+        )
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        return Response(data={"message": "Data successfully changed."}, status=status.HTTP_200_OK)
 
 class STTDeleteAPIView(APIView):
     @swagger_auto_schema(

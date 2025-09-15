@@ -20,3 +20,11 @@ class STTListSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
 
+class STTChangeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = STTModel
+        fields = [
+            "text",
+        ]
+
+
