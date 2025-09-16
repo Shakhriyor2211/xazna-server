@@ -1,5 +1,5 @@
 from rest_framework import serializers
-
+from shared.serializers import AudioSerializer
 from tts.models import TTSModel
 
 
@@ -17,3 +17,12 @@ class TTSSerializer(serializers.ModelSerializer):
             "audio": {"read_only": True},
         }
 
+
+
+
+class TTSListSerializer(serializers.ModelSerializer):
+    audio = AudioSerializer()
+    class Meta:
+        model = TTSModel
+        fields = ["id", "text", "audio", "created_at"]
+        read_only_fields = ["id"]

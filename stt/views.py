@@ -70,7 +70,7 @@ class STTListAPIView(APIView):
         ordering = request.query_params.get('ordering', '-created_at')
 
 
-        queryset = STTModel.objects.filter(user_id=request.user).order_by(ordering)
+        queryset = STTModel.objects.filter(user=request.user).order_by(ordering)
 
         paginator = CustomPagination()
         paginated_qs = paginator.paginate_queryset(queryset, request)
@@ -137,7 +137,7 @@ class STTSearchAPIView(APIView):
     )
     def get(self, request):
         q = request.GET['q'].strip()
-        items = STTModel.objects.filter(audio__name__icontains=q).order_by('-created_at')
+        items = STTModel.objects.filter(audio__name__icontains=q, user=request.user).order_by('-created_at')
         serializer = STTListSerializer(items, many=True)
 
         return Response(data=serializer.data, status=status.HTTP_200_OK)
