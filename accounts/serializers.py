@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate
 from django.core.validators import validate_email
 from rest_framework import serializers
 from accounts.exceptions import AuthException, PermissionException, ValidationException
-from accounts.models import CustomUserModel, EmailConfirmOtpModel, UserPictureModel
+from accounts.models import CustomUserModel, EmailConfirmOtpModel, PictureModel
 
 
 class SignInSerializer(serializers.Serializer):
@@ -165,14 +165,14 @@ class ProfileChangeInfoSerializer(serializers.ModelSerializer):
         }
 
 
-class UserPictureModelSerializer(serializers.ModelSerializer):
+class PictureModelSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserPictureModel
+        model = PictureModel
         fields = ["portrait"]
 
 
 class UserSerializer(serializers.ModelSerializer):
-    picture = UserPictureModelSerializer(read_only=True)
+    picture = PictureModelSerializer(read_only=True)
 
     class Meta:
         model = CustomUserModel

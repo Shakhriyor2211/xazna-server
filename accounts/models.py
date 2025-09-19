@@ -8,7 +8,6 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from accounts.managers import CustomUserManager
 from xazna.models import BaseModel
-
 from xazna import settings
 
 
@@ -57,7 +56,7 @@ class CustomUserModel(AbstractBaseUser, PermissionsMixin):
 
 
 
-class UserPictureModel(BaseModel):
+class PictureModel(BaseModel):
     user=models.OneToOneField(CustomUserModel, on_delete=models.CASCADE, related_name="picture")
     portrait=models.ImageField(upload_to=generate_picture_name, blank=True, null=True)
 
@@ -72,9 +71,9 @@ class UserPictureModel(BaseModel):
             self.portrait.save(filename, ContentFile(response.content), save=True)
 
     class Meta:
-        verbose_name = "User picture"
-        verbose_name_plural = "User pictures"
-        db_table = 'user_picture'
+        verbose_name = "Picture"
+        verbose_name_plural = "Pictures"
+        db_table = 'picture'
 
 
 class EmailConfirmOtpModel(BaseModel):
@@ -131,6 +130,7 @@ class PasswordResetTokenModel(BaseModel):
         verbose_name = "Password reset token"
         verbose_name_plural = "Password reset tokens"
         db_table = 'password_reset_token'
+
 
 
 

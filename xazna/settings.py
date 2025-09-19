@@ -81,7 +81,8 @@ INSTALLED_APPS = [
     "shared",
     "accounts",
     "tts",
-    "stt"
+    "stt",
+    "finance"
 ]
 
 

@@ -30,11 +30,8 @@ class STTAPIView(APIView):
             serializer.is_valid(raise_exception=True)
 
             file = serializer.validated_data["file"]
-            ext = os.path.splitext(file.name)[1]
-            original_name =file.name
-            file.name = f"{uuid.uuid4()}{ext}"
 
-            instance = serializer.save(user=request.user, name=original_name)
+            instance = serializer.save(user=request.user)
 
             res = async_to_sync(send_post_request)(file, settings.STT_SERVER, 'file')
             data = res.json()

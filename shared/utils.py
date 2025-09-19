@@ -22,8 +22,8 @@ async def send_post_request(payload, url, request_type="json"):
 
 def generate_audio(bytes, fmt):
     temp_dir = os.path.join(settings.MEDIA_ROOT, "temp")
-    temp_path = os.path.join(temp_dir, f"""{uuid.uuid4()}.wav""")
-    output_path = os.path.join(temp_dir, f"{uuid.uuid4()}.{fmt}")
+    temp_path = os.path.join(temp_dir, f"""audio.wav""")
+    output_path = os.path.join(temp_dir, f"""audio.{fmt}""")
 
     os.makedirs(os.path.dirname(temp_dir), exist_ok=True)
 
@@ -31,10 +31,15 @@ def generate_audio(bytes, fmt):
         f.write(bytes)
 
     try:
+        if fmt == "wav":
+            return File(open(temp_path, "rb"), name="audio.wav")
+
         audio = AudioSegment.from_file(temp_path, format="wav")
         audio.export(output_path, format=fmt)
 
-        return File(open(output_path, "rb"), name=f"""{uuid.uuid4()}.{fmt}""")
+        return File(open(output_path, "rb"), name=f"""audio.{fmt}""")
+
+
 
     finally:
         if os.path.exists(temp_path):

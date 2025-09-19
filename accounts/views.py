@@ -12,11 +12,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from accounts.models import CustomUserModel, SocialAccountModel, EmailConfirmOtpModel, PasswordResetTokenModel, UserPictureModel
+from accounts.models import CustomUserModel, SocialAccountModel, EmailConfirmOtpModel, PasswordResetTokenModel, PictureModel
 from accounts.permissions import AuthPermission, AdminPermission
 from accounts.serializers import SignUpSerializer, UserSerializer, SignInSerializer, RefreshTokenSerializer, \
     VerifyTokenSerializer, ResendEmailCodeSerializer, VerifyEmailCodeSerializer, PasswordChangeSerializer, \
-    ProfileChangeInfoSerializer, UserPictureModelSerializer
+    ProfileChangeInfoSerializer, PictureModelSerializer
 from drf_yasg.utils import swagger_auto_schema
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -756,12 +756,12 @@ class ProfileChangeImageView(APIView):
 
     @swagger_auto_schema(
         operation_description="Profile image change..",
-        request_body=UserPictureModelSerializer
+        request_body=PictureModelSerializer
     )
     def post(self, request, *args, **kwargs):
         try:
-            picture = UserPictureModel.objects.get(user=request.user)
-            serializer = UserPictureModelSerializer(picture, data=request.data, partial=True)
+            picture = PictureModel.objects.get(user=request.user)
+            serializer = PictureModelSerializer(picture, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
                 return Response(data=serializer.data, status=status.HTTP_200_OK)
@@ -779,7 +779,7 @@ class ProfileChangeImageView(APIView):
                 data={"message": "Profile picture removed."},
                 status=status.HTTP_200_OK
             )
-        except UserPictureModel.DoesNotExist:
+        except PictureModel.DoesNotExist:
             return Response(
                 data={"error": "No picture found for this user."},
                 status=status.HTTP_404_NOT_FOUND
