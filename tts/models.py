@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
 from django.db import models
 from accounts.models import CustomUserModel
 from shared.models import AudioModel
@@ -8,12 +11,43 @@ class TTSModel(BaseModel):
     text = models.CharField()
     user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
     audio = models.OneToOneField(AudioModel, null=True, blank=True, on_delete=models.SET_NULL)
-    emotion = models.CharField(choices=[('Neural', 'Neural'), ('Happy', 'Happy')], default='Happy')
-    model = models.CharField(choices=[('iroda', 'iroda'), ('surayyo_v2', 'surayyo_v2')], default='surayyo_v2')
-    format = models.CharField(
-        choices=[('mp3', 'MP3'), ('wav', 'WAV'), ('ogg', 'OGG'), ('flac', 'FLAC'), ('aac', 'AAC')], default='mp3')
+    emotion = models.CharField(max_length=50)
+    model = models.CharField(max_length=50)
+    format = models.CharField(max_length=50)
 
     class Meta:
-        verbose_name = "TTS"
-        verbose_name_plural = "TTS"
-        db_table = 'tts'
+        verbose_name = "Data"
+        verbose_name_plural = "Data"
+        db_table = 'tts_data'
+
+
+class TTSEmotionModel(BaseModel):
+    title = models.CharField(max_length=50, unique=True)
+    user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = "Emotions"
+        verbose_name_plural = "Emotions"
+        db_table = 'tts_emotion'
+
+
+class TTSModelModel(BaseModel):
+    title = models.CharField(max_length=50, unique=True)
+    user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
+    credit = models.FloatField(validators=[MinValueValidator(0)])
+    cash = models.FloatField(validators=[MinValueValidator(0)])
+
+    class Meta:
+        verbose_name = "Models"
+        verbose_name_plural = "Models"
+        db_table = 'tts_model'
+
+
+class TTSAudioFormatModel(BaseModel):
+    title = models.CharField(max_length=50, unique=True)
+    user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = "Audio formats"
+        verbose_name_plural = "Audio formats"
+        db_table = 'tts_audio_format'

@@ -7,10 +7,25 @@ from drf_yasg import openapi
 from accounts.permissions import AuthPermission
 from shared.models import AudioModel
 from shared.views import CustomPagination
-from tts.models import TTSModel
+from tts.models import TTSModel, TTSModelModel, TTSEmotionModel, TTSAudioFormatModel
 from tts.serializers import TTSSerializer, TTSListSerializer
 from shared.utils import send_post_request, generate_audio
 from xazna import settings
+
+
+class TTSSettingsAPIView(APIView):
+    permission_classes = [AuthPermission]
+
+    def get(self, request):
+        models = list(TTSModelModel.objects.values_list("title", flat=True))
+        emotions = list(TTSEmotionModel.objects.values_list("title", flat=True))
+        audio_formats = list(TTSAudioFormatModel.objects.values_list("title", flat=True))
+
+        return Response(data={
+            "models": models,
+            "emotions": emotions,
+            "formats": audio_formats
+        }, status=status.HTTP_200_OK)
 
 
 class TTSAPIView(APIView):
@@ -41,8 +56,6 @@ class TTSAPIView(APIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
-
 class TTSListAPIView(APIView):
     permission_classes = [AuthPermission]
 
@@ -60,7 +73,6 @@ class TTSListAPIView(APIView):
     ])
     def get(self, request):
         ordering = request.query_params.get('ordering', '-created_at')
-
 
         queryset = TTSModel.objects.filter(user=request.user).order_by(ordering)
 

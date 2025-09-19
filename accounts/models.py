@@ -131,3 +131,6 @@ class PasswordResetTokenModel(BaseModel):
         verbose_name = "Password reset token"
         verbose_name_plural = "Password reset tokens"
         db_table = 'password_reset_token'
+
+
+
