@@ -37,6 +37,7 @@ base_patterns = [
     path("user/", include(user_urlpatterns)),
     path("tts/", include("tts.urls")),
     path("stt/", include("stt.urls")),
+    path("finance/", include("finance.urls")),
 ]
 protected_media_patterns = [
     path("audio/stream/<id>/", ProtectedAudioStreamView.as_view(), name="audio_stream"),

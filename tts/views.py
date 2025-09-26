@@ -1,3 +1,5 @@
+from datetime import timedelta
+from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
@@ -41,15 +43,59 @@ class TTSAPIView(APIView):
             serializer.is_valid(raise_exception=True)
             data = serializer.validated_data
 
+            plan = TTSModelModel.objects.get(title=data["model"])
+            balance = request.user.balance
+            subscription = balance.subscription
+
+            if subscription.rate_reset is None or subscription.rate_reset < timezone.now():
+                subscription.rate_reset = timezone.now() + timedelta(minutes=subscription.rate_time)
+                subscription.rate_usage = 0
+
+            credit_avail = subscription.credit - subscription.expense
+            credit_active = min(credit_avail, subscription.rate - subscription.rate_usage)
+            char_length = len(data["text"])
+            credit_usage = char_length * plan.credit
+            cash_usage = 0
+
+
+            if balance.chargeable and char_length > credit_active / plan.credit:
+                remainder = char_length - int(credit_active / plan.credit)
+                credit_usage = (char_length - remainder) * plan.credit
+                cash_usage = remainder * plan.cash
+
+                if cash_usage > balance.cash:
+                    return Response(data={"message": "Not enough founds."},
+                                        status=status.HTTP_403_FORBIDDEN)
+
+                balance.cash -= cash_usage
+
+            else:
+                if char_length > credit_avail / plan.credit:
+                    return Response(data={"message": "Not enough credits."},
+                                    status=status.HTTP_403_FORBIDDEN)
+
+                if char_length > credit_active / plan.credit:
+                    return Response(data={"message": "Request limit exceeded."},
+                                    status=status.HTTP_403_FORBIDDEN)
+
+            subscription.expense += credit_usage
+            subscription.rate_usage += credit_usage
+
             res = async_to_sync(send_post_request)({"emotion": data.get("emotion"), "text": data["text"]},
                                                    settings.TTS_SERVER)
 
-            audio = AudioModel.objects.create(user=request.user, file=generate_audio(res.content, fmt=data["format"]))
-            instance = serializer.save(audio=audio, user=request.user)
+            audio_instance = AudioModel.objects.create(user=request.user,
+                                                       file=generate_audio(res.content, fmt=data["format"]))
 
-            tts = TTSListSerializer(instance)
+            tts_instance = serializer.save(audio=audio_instance, user=request.user, credit=credit_usage, cash=cash_usage)
+
+            tts = TTSListSerializer(tts_instance)
+
+            balance.save()
+            subscription.save()
 
             return Response(data=tts.data, status=status.HTTP_200_OK)
+
 
         except Exception as error:
             print(error)

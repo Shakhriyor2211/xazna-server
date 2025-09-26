@@ -44,15 +44,15 @@ class CustomUserModel(AbstractBaseUser, PermissionsMixin):
     def is_superuser(self):
         return self.role == 'superadmin'
 
-
+    def __str__(self):
+        return f'''{self.email}'''
 
     class Meta:
         verbose_name = "User"
         verbose_name_plural = "Users"
         db_table = 'user'
 
-    def __str__(self):
-        return f'''{self.email}'''
+
 
 
 

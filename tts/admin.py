@@ -7,8 +7,12 @@ class TTSAdmin(admin.ModelAdmin):
     list_display = (
         'text',
         'user',
+        "credit",
+        "cash",
         'created_at'
     )
+    ordering = ("-created_at",)
+
 class TTSModelAdmin(admin.ModelAdmin):
     exclude = ("user",)
     list_display = (
@@ -18,6 +22,7 @@ class TTSModelAdmin(admin.ModelAdmin):
         "cash",
         "created_at",
     )
+    ordering = ("-created_at",)
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
@@ -42,6 +47,7 @@ class TTSAudioFormatAdmin(admin.ModelAdmin):
         'user',
         'created_at'
     )
+    ordering = ("-created_at",)
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user

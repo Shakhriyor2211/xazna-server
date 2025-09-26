@@ -5,10 +5,7 @@ from tts.models import TTSModel
 
 
 class TTSSerializer(serializers.ModelSerializer):
-    emotion = serializers.ChoiceField(
-        choices=[("Neural", "Neural"), ("Happy", "Happy")],
-        default="Happy"
-    )
+    emotion = serializers.CharField(max_length=50)
 
 
     class Meta:

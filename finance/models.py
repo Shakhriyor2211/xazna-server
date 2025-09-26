@@ -1,38 +1,95 @@
-from django.core.validators import MinValueValidator
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
-
-from accounts.models import CustomUserModel
 from xazna.models import BaseModel
 
 
 class BalanceModel(BaseModel):
-    user = models.OneToOneField(CustomUserModel, on_delete=models.CASCADE, related_name="balance")
-    cash =  models.FloatField(default=0,)
-    credits = models.FloatField(validators=[MinValueValidator(0)], default=0)
+    user = models.OneToOneField("accounts.CustomUserModel", on_delete=models.CASCADE, related_name="balance")
+    cash = models.DecimalField(max_digits=16, decimal_places=4, null=True, blank=True)
+    chargeable = models.BooleanField(default=True)
+    subscription = models.OneToOneField("SubscriptionModel", on_delete=models.SET_NULL, null=True, blank=True,
+                                        related_name="subscription")
+
+    def __str__(self):
+        return f'''{self.id}'''
 
     class Meta:
         verbose_name = "Balance"
-        verbose_name_plural = "Balance"
-        db_table = 'balance'
-
+        verbose_name_plural = "Balances"
+        db_table = "balance"
 
 
 class SubscriptionModel(BaseModel):
+    title = models.CharField(max_length=50)
+    credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], null=True, blank=True)
+    expense = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
+    discount = models.DecimalField(max_digits=3, decimal_places=1,
+                                   validators=[MinValueValidator(0), MaxValueValidator(100)], null=True, blank=True)
+    auto_renew = models.BooleanField(default=True)
+    rate = models.PositiveBigIntegerField(null=True, blank=True)
+    rate_time = models.PositiveIntegerField(null=True, blank=True)
+    rate_usage = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
+    rate_reset = models.DateTimeField(null=True, blank=True)
+    price = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], null=True, blank=True)
+    status = models.CharField(
+        choices=[("active", "active"), ("expired", "expired"), ("canceled", "canceled")],
+        default="active")
+    period = models.CharField(choices=[("monthly", "monthly"), ("annual", "annual")], default="monthly")
+    start_date = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+    user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
+
+
+    def save(self, *args, **kwargs):
+        if not self.end_date:
+            local_now = timezone.localtime(timezone.now())
+            midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            if self.period == "annual":
+                self.end_date = midnight + relativedelta(years=1, days=1)
+            else:
+                self.end_date = midnight + relativedelta(months=1, days=1)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'''{self.title}'''
+
+    class Meta:
+        verbose_name = "Subscription"
+        verbose_name_plural = "Subscriptions"
+        db_table = "subscription"
+
+
+class PlanModel(BaseModel):
     title = models.CharField(max_length=50, unique=True)
-    description = models.TextField(blank=True)
-    credits = models.FloatField(validators=[MinValueValidator(0)])
-    monthly_cost = models.FloatField(validators=[MinValueValidator(0)])
-    annual_cost =models.FloatField(validators=[MinValueValidator(0)])
-    discount =models.FloatField(validators=[MinValueValidator(0)])
+    description = models.TextField(blank=True, null=True)
+    rate = models.PositiveBigIntegerField(null=True, blank=True)
+    rate_time = models.PositiveIntegerField(null=True, blank=True)
+    monthly_credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], null=True, blank=True)
+    monthly_price = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], null=True, blank=True)
+    annual_credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], null=True,
+                                        blank=True)
+    annual_price = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], null=True,
+                                       blank=True)
+    monthly_discount = models.DecimalField(max_digits=4, decimal_places=1,
+                                           validators=[MinValueValidator(0), MaxValueValidator(100)], null=True, blank=True)
+    annual_discount = models.DecimalField(max_digits=4, decimal_places=1,
+                                          validators=[MinValueValidator(0), MaxValueValidator(100)], null=True,
+                                          blank=True)
     user = models.ForeignKey(
-        CustomUserModel,
+        "accounts.CustomUserModel",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="subscription",
     )
 
+    def __str__(self):
+        return f'''{self.title}'''
+
     class Meta:
-        verbose_name = "Subscriptions"
-        verbose_name_plural = "Subscriptions"
-        db_table = 'subscription'
+        verbose_name = "Plans"
+        verbose_name_plural = "Plans"
+        db_table = "plan"

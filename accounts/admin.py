@@ -11,18 +11,17 @@ class CustomUserAdmin(UserAdmin):
     form = UserChangeForm
     model = CustomUserModel
     search_fields = ("email", "first_name", "last_name")
-    ordering = ("pk",)
     list_display = (
         "email",
         "first_name",
         "last_name",
-        "picture__id",
-        "balance__id",
         "role",
         "is_active",
         "is_blocked",
         "created_at",
     )
+    ordering = ("-created_at",)
+
     list_filter = (
         "role",
         "is_active",

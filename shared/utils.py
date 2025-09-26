@@ -1,6 +1,4 @@
 import os
-import uuid
-
 import httpx
 from django.core.files import File
 from pydub import AudioSegment
@@ -44,3 +42,9 @@ def generate_audio(bytes, fmt):
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+
+def get_audio_duration(file):
+    audio = AudioSegment.from_file(file)
+    return len(audio) / 1000

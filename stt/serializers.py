@@ -5,6 +5,11 @@ from stt.models import STTModel
 
 
 
+class STTSerializer(serializers.Serializer):
+    file = serializers.FileField()
+    model = serializers.CharField(max_length=50)
+
+
 class STTListSerializer(serializers.ModelSerializer):
     audio = AudioSerializer()
     class Meta:
