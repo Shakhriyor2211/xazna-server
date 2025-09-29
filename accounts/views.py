@@ -21,7 +21,7 @@ from drf_yasg.utils import swagger_auto_schema
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from accounts.task import send_email_confirmation, send_email_reset_password
+from accounts.tasks import send_email_confirmation, send_email_reset_password
 from accounts.utils import generate_email_otp
 from xazna import settings
 

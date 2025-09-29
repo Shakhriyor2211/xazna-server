@@ -2,12 +2,12 @@ from decimal import Decimal
 from drf_yasg import openapi
 from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
-from accounts.permissions import AuthPermission
-from finance.models import PlanModel, SubscriptionModel
+from accounts.permissions import AuthPermission, AdminPermission
+from finance.models import PlanModel, SubscriptionModel, BalanceModel
 from finance.serializers import SubscriptionSerializer, SubscriptionListSerializer
 from rest_framework import status
 from rest_framework.response import Response
-
+from django.utils import timezone
 from shared.views import CustomPagination
 
 
@@ -45,7 +45,7 @@ class SubscriptionAPIView(APIView):
                 }
 
             if plan["title"] == "Enterprise" or plan["title"] == "Free" and period == "annual" or plan[
-                "title"] == "Free" and subscription.title == "Free":
+                "title"] == "Free" and subscription.title == "Free" and subscription.end_date > timezone.now():
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
             price = plan["price"] * (Decimal(100 - plan["discount"]) / Decimal(100))
@@ -54,12 +54,12 @@ class SubscriptionAPIView(APIView):
                 return Response(data={"message": "Not enough funds, please top up your balance."},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-            balance.subscription = SubscriptionModel.objects.create(user=request.user, title=plan["title"],
-                                                                    credit=plan["credit"], rate=plan["rate"],
-                                                                    rate_time=plan["rate_time"],
-                                                                    price=plan["price"], period=period)
+            balance.subscription = SubscriptionModel.objects.create(user=request.user, period=period, **plan)
             balance.cash -= price
-            subscription.status = "canceled"
+
+            if subscription.status == "active":
+                subscription.status = "canceled"
+
             subscription.save()
             balance.save()
 
@@ -96,3 +96,52 @@ class SubscriptionListAPIView(APIView):
         serializer = SubscriptionListSerializer(paginated_qs, many=True)
 
         return paginator.get_paginated_response(serializer.data)
+
+
+class SubscriptionCheckAPIView(APIView):
+    permission_classes = [AuthPermission, AdminPermission]
+
+    def get(self, request):
+        subscriptions = SubscriptionModel.objects.filter(status="active", end_date__lt=timezone.now())
+
+        for subscription in subscriptions:
+            subscription.status = "expired"
+            subscription.save()
+
+            local_now = timezone.localtime(timezone.now())
+            midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            balance = BalanceModel.objects.get(user=subscription.user)
+            plan = PlanModel.objects.get(title=subscription.title)
+
+            if subscription.period == "monthly":
+                plan = {
+                    "title": plan.title,
+                    "price": plan.monthly_price,
+                    "credit": plan.monthly_credit,
+                    "discount": plan.monthly_discount,
+                    "rate": plan.rate,
+                    "rate_time": plan.rate_time,
+                }
+            else:
+                plan = {
+                    "title": plan.title,
+                    "price": plan.annual_price,
+                    "credit": plan.annual_credit,
+                    "discount": plan.annual_discount,
+                    "rate": plan.rate,
+                    "rate_time": plan.rate_time,
+                }
+
+            if subscription.auto_renew and subscription.title == "Free":
+                balance.subscription = SubscriptionModel.objects.create(user=subscription.user, period=subscription.period,
+                                                                        start_date=midnight, **plan)
+                balance.save()
+
+
+            elif subscription.auto_renew and balance.cash >= subscription.price:
+                balance.cash -= subscription.price
+                balance.subscription = SubscriptionModel.objects.create(user=subscription.user, period=subscription.period,
+                                                                        start_date=midnight, **plan)
+                balance.save()
+
+        return Response(status=status.HTTP_200_OK)

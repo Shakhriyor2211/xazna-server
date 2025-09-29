@@ -71,8 +71,6 @@ class BalanceAdmin(admin.ModelAdmin):
 
 
 class SubscriptionAdmin(admin.ModelAdmin):
-    exclude = ("end_date",)
-
     list_display = (
         "id",
         "title",

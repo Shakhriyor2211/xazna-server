@@ -37,7 +37,7 @@ class SubscriptionModel(BaseModel):
         choices=[("active", "active"), ("expired", "expired"), ("canceled", "canceled")],
         default="active")
     period = models.CharField(choices=[("monthly", "monthly"), ("annual", "annual")], default="monthly")
-    start_date = models.DateTimeField(auto_now_add=True)
+    start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
 
@@ -45,12 +45,14 @@ class SubscriptionModel(BaseModel):
     def save(self, *args, **kwargs):
         if not self.end_date:
             local_now = timezone.localtime(timezone.now())
-            midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            midnight = local_now.replace(hour=23, minute=59, second=59, microsecond=59)
 
-            if self.period == "annual":
-                self.end_date = midnight + relativedelta(years=1, days=1)
-            else:
-                self.end_date = midnight + relativedelta(months=1, days=1)
+            # if self.period == "annual":
+            #     self.end_date = midnight + relativedelta(years=1)
+            # else:
+            #     self.end_date = midnight + relativedelta(months=1)
+
+            self.end_date = timezone.now() - relativedelta(months=1)
 
         super().save(*args, **kwargs)
 

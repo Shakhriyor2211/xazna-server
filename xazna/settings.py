@@ -8,9 +8,11 @@ from celery.schedules import crontab
 load_dotenv()
 
 CELERY_TASK_QUEUES = (
-    Queue("conversion", routing_key="conversion.#"),
     Queue("email", routing_key="email.#"),
+    Queue("clean", routing_key="clean.#"),
+    Queue("check", routing_key="check.#"),
 )
+
 
 CELERY_TASK_ROUTES = {
     "tasks.convert_file": {"queue": "conversion", "routing_key": "conversion.file"},
@@ -27,13 +29,21 @@ CELERY_TASK_ROUTES = {
 
 CELERY_BEAT_SCHEDULE = {
     "clean-tokens-daily": {
-        "task": "accounts.task.clean_password_reset_tokens",
+        "task": "accounts.tasks.clean_password_reset_tokens",
         "schedule": crontab(hour=3, minute=0),  # every day at 03:00 server time
         "options": {
-            "queue": "cleaner",
-            "routing_key": "cleaner.cleanup"
+            "queue": "clean",
+            "routing_key": "clean.tokens"
         }
     },
+    "check-subscriptions-daily": {
+        "task": "finance.tasks.check_subscriptions",
+        "schedule":crontab(hour=0, minute=0),  # every day at 00:00 server time
+        "options": {
+            "queue": "check",
+            "routing_key": "check.subscriptions"
+        }
+    }
 }
 
 TTS_SERVER = os.getenv("TTS_SERVER")
@@ -42,7 +52,6 @@ STT_SERVER = os.getenv("STT_SERVER")
 
 CELERY_BROKER_URL = f"redis://{os.getenv("REDIS_HOST")}:6379/0"
 CELERY_RESULT_BACKEND = f"redis://{os.getenv("REDIS_HOST")}:6379/0"
-CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
 CELERY_RESULT_EXTENDED = True
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 10800
