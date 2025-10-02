@@ -3,6 +3,7 @@ from django.core.validators import validate_email
 from rest_framework import serializers
 from accounts.exceptions import AuthException, PermissionException, ValidationException
 from accounts.models import CustomUserModel, EmailConfirmOtpModel, PictureModel
+from finance.serializers import BalanceSerializer
 
 
 class SignInSerializer(serializers.Serializer):
@@ -90,10 +91,6 @@ class SignUpSerializer(serializers.ModelSerializer):
         return user
 
 
-
-
-
-
 class RefreshTokenSerializer(serializers.Serializer):
     refresh = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
@@ -150,8 +147,6 @@ class PasswordChangeSerializer(serializers.Serializer):
         return attrs
 
 
-
-
 class ProfileChangeInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUserModel
@@ -173,10 +168,9 @@ class PictureModelSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     picture = PictureModelSerializer(read_only=True)
+    balance = BalanceSerializer(read_only=True)
 
     class Meta:
         model = CustomUserModel
-        fields = ["id", "first_name", "last_name", "email", "picture", "created_at", "last_password_update", "regular_auth", "is_active", "is_blocked"]
-
-
-
+        fields = ["id", "first_name", "last_name", "email", "picture", "balance", "created_at", "last_password_update",
+                  "regular_auth", "is_active", "is_blocked"]

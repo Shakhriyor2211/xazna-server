@@ -4,26 +4,30 @@ from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
 from accounts.permissions import AuthPermission, AdminPermission
 from finance.models import PlanModel, SubscriptionModel, BalanceModel
-from finance.serializers import SubscriptionSerializer, SubscriptionListSerializer
+from finance.serializers import SubscriptionWriteSerializer, SubscriptionListSerializer, PlansSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from django.utils import timezone
 from shared.views import CustomPagination
 
+class PlansAPIView(APIView):
+    def get(self, request):
+        serializer = PlansSerializer(PlanModel.objects.all(), many=True)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 class SubscriptionAPIView(APIView):
     permission_classes = [AuthPermission]
 
-    @swagger_auto_schema(operation_description='Take subscription...', request_body=SubscriptionSerializer)
+    @swagger_auto_schema(operation_description='Take subscription...', request_body=SubscriptionWriteSerializer)
     def post(self, request):
         try:
-            serializer = SubscriptionSerializer(data=request.data)
+            serializer = SubscriptionWriteSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
             period = serializer.validated_data["period"]
             plan = PlanModel.objects.get(title=serializer.validated_data["plan"])
             balance = request.user.balance
-            subscription = balance.subscription
+            old_subscription = balance.subscription
 
             if period == "monthly":
                 plan = {
@@ -45,22 +49,33 @@ class SubscriptionAPIView(APIView):
                 }
 
             if plan["title"] == "Enterprise" or plan["title"] == "Free" and period == "annual" or plan[
-                "title"] == "Free" and subscription.title == "Free" and subscription.end_date > timezone.now():
+                "title"] == "Free" and old_subscription.title == "Free" and old_subscription.end_date > timezone.now():
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
             price = plan["price"] * (Decimal(100 - plan["discount"]) / Decimal(100))
 
-            if plan["title"] != "Free" and price > balance.cash:
-                return Response(data={"message": "Not enough funds, please top up your balance."},
-                                status=status.HTTP_400_BAD_REQUEST)
+            if plan["title"] == "Free":
+                new_subscription = SubscriptionModel.objects.filter(title="Free", user=request.user).order_by("-start_date").first()
+                if new_subscription is not None and new_subscription.end_date >= timezone.now():
+                    new_subscription.status = "active"
+                    new_subscription.save()
+                    balance.subscription = new_subscription
+                else:
+                    balance.subscription = SubscriptionModel.objects.create(user=request.user, period=period, **plan)
 
-            balance.subscription = SubscriptionModel.objects.create(user=request.user, period=period, **plan)
-            balance.cash -= price
+            else:
+                if price > balance.cash:
+                    return Response(data={"message": "Not enough funds, please top up your balance."},
+                                    status=status.HTTP_400_BAD_REQUEST)
 
-            if subscription.status == "active":
-                subscription.status = "canceled"
+                balance.subscription = SubscriptionModel.objects.create(user=request.user, period=period, **plan)
+                balance.cash -= price
 
-            subscription.save()
+            if old_subscription.status == "active":
+                old_subscription.status = "canceled"
+
+
+            old_subscription.save()
             balance.save()
 
             return Response(data={"message": "Your plan changed successfully."}, status=status.HTTP_200_OK)
