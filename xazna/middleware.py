@@ -44,7 +44,7 @@ class CoreMiddleware:
     async def _async_call(self, request):
         try:
             user_id = self._get_user_id(request)
-            request._user = CustomUserModel.objects.get(id=user_id)
+            request._user = await sync_to_async(CustomUserModel.objects.get)(id=user_id)
         except:
             request._user = AnonymousUser()
 

@@ -16,6 +16,7 @@ from stt.models import STTModel, STTModelModel
 from stt.serializers import STTListSerializer, STTChangeSerializer, STTSerializer
 from xazna import settings
 from django.utils import timezone
+from django.db import transaction
 
 
 class STTAPIView(APIView):
@@ -25,62 +26,63 @@ class STTAPIView(APIView):
     @swagger_auto_schema(operation_description='STT list...', request_body=STTSerializer)
     def post(self, request):
         try:
-            serializer = STTSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            with transaction.atomic():
+                serializer = STTSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
 
-            model = serializer.validated_data["model"]
+                model = serializer.validated_data["model"]
 
-            file = serializer.validated_data["file"]
+                file = serializer.validated_data["file"]
 
-            plan = STTModelModel.objects.get(title=model)
-            balance = request.user.balance
-            subscription = balance.subscription
+                plan = STTModelModel.objects.get(title=model)
+                balance = request.user.balance
+                subscription = balance.subscription
 
-            if subscription.rate_reset is None or subscription.rate_reset < timezone.now():
-                subscription.rate_reset = timezone.now() + timedelta(minutes=subscription.rate_time)
-                subscription.rate_usage = 0
+                if subscription.rate_reset is None or subscription.rate_reset < timezone.now():
+                    subscription.rate_reset = timezone.now() + timedelta(minutes=subscription.rate_time)
+                    subscription.rate_usage = 0
 
-            credit_avail = subscription.credit - subscription.expense
-            credit_active = min(credit_avail, subscription.rate - subscription.rate_usage)
-            audio_duration = math.ceil(get_audio_duration(file))
-            credit_usage = audio_duration * plan.credit
-            cash_usage = 0
+                credit_avail = subscription.credit - subscription.expense
+                credit_active = min(credit_avail, subscription.rate - subscription.rate_usage)
+                audio_duration = math.ceil(get_audio_duration(file))
+                credit_usage = audio_duration * plan.credit
+                cash_usage = 0
 
-            if balance.chargeable and audio_duration > credit_active / plan.credit:
-                remainder = audio_duration - int(credit_active / plan.credit)
-                credit_usage = (audio_duration - remainder) * plan.credit
-                cash_usage = remainder * plan.cash
+                if balance.chargeable and audio_duration > credit_active / plan.credit:
+                    remainder = audio_duration - int(credit_active / plan.credit)
+                    credit_usage = (audio_duration - remainder) * plan.credit
+                    cash_usage = remainder * plan.cash
 
-                if cash_usage > balance.cash:
-                    return Response(data={"message": "Not enough founds."},
-                                    status=status.HTTP_403_FORBIDDEN)
+                    if cash_usage > balance.cash:
+                        return Response(data={"message": "Not enough founds."},
+                                        status=status.HTTP_403_FORBIDDEN)
 
-                balance.cash -= cash_usage
+                    balance.cash -= cash_usage
 
-            else:
-                if audio_duration > credit_avail / plan.credit:
-                    return Response(data={"message": "Not enough credits."},
-                                    status=status.HTTP_403_FORBIDDEN)
+                else:
+                    if audio_duration > credit_avail / plan.credit:
+                        return Response(data={"message": "Not enough credits."},
+                                        status=status.HTTP_403_FORBIDDEN)
 
-                if audio_duration > credit_active / plan.credit:
-                    return Response(data={"message": "Request limit exceeded."},
-                                    status=status.HTTP_403_FORBIDDEN)
+                    if audio_duration > credit_active / plan.credit:
+                        return Response(data={"message": "Request limit exceeded."},
+                                        status=status.HTTP_403_FORBIDDEN)
 
-            subscription.expense += credit_usage
-            subscription.rate_usage += credit_usage
+                subscription.expense += credit_usage
+                subscription.rate_usage += credit_usage
 
-            res = async_to_sync(send_post_request)(file, settings.STT_SERVER, 'file')
-            data = res.json()
+                res = async_to_sync(send_post_request)(file, settings.STT_SERVER, 'file')
+                data = res.json()
 
-            audio_instance = AudioModel.objects.create(user=request.user, file=file)
-            stt_instance = STTModel.objects.create(text=data["transcription"], user=request.user, audio=audio_instance,
-                                                   credit=credit_usage, cash=cash_usage)
-            stt = STTListSerializer(stt_instance)
+                audio_instance = AudioModel.objects.create(user=request.user, file=file)
+                stt_instance = STTModel.objects.create(text=data["transcription"], user=request.user, audio=audio_instance,
+                                                       credit=credit_usage, cash=cash_usage)
+                stt = STTListSerializer(stt_instance)
 
-            balance.save()
-            subscription.save()
+                balance.save()
+                subscription.save()
 
-            return Response(data=stt.data, status=status.HTTP_200_OK)
+                return Response(data=stt.data, status=status.HTTP_200_OK)
 
 
         except Exception as error:

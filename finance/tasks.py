@@ -1,53 +1,57 @@
 from celery import shared_task
 from django.utils import timezone
-
+from django.db import transaction
 from finance.models import SubscriptionModel, BalanceModel, PlanModel
 
 
 @shared_task
 def check_subscriptions():
-    subscriptions = SubscriptionModel.objects.filter(status="active", end_date__lt=timezone.now())
+    with transaction.atomic():
+        subscriptions = SubscriptionModel.objects.filter(status="active", end_date__lt=timezone.now())
 
-    for subscription in subscriptions:
-        subscription.status = "expired"
-        subscription.save()
+        for subscription in subscriptions:
+            subscription.status = "expired"
+            subscription.save()
 
-        local_now = timezone.localtime(timezone.now())
-        midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-        balance = BalanceModel.objects.get(user=subscription.user)
-        plan = PlanModel.objects.get(title=subscription.title)
+            local_now = timezone.localtime(timezone.now())
+            midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            balance = BalanceModel.objects.get(user=subscription.user)
 
-        if subscription.period == "monthly":
+            current_plan = PlanModel.objects.get(title=subscription.title)
+
             plan = {
-                "title": plan.title,
-                "price": plan.monthly_price,
-                "credit": plan.monthly_credit,
-                "discount": plan.monthly_discount,
-                "rate": plan.rate,
-                "rate_time": plan.rate_time,
-            }
-        else:
-            plan = {
-                "title": plan.title,
-                "price": plan.annual_price,
-                "credit": plan.annual_credit,
-                "discount": plan.annual_discount,
-                "rate": plan.rate,
-                "rate_time": plan.rate_time,
+                "title": current_plan.title,
+                "price": current_plan.monthly_price,
+                "credit": current_plan.monthly_credit,
+                "discount": current_plan.monthly_discount,
+                "rate": current_plan.rate,
+                "rate_time": current_plan.rate_time,
             }
 
-        if subscription.auto_renew and subscription.title == "Free":
-            balance.subscription = SubscriptionModel.objects.create(user=subscription.user, period=subscription.period,
-                                                                    start_date=midnight, **plan)
+            if subscription.period == "annual":
+                plan = {
+                    "title": current_plan.title,
+                    "price": current_plan.annual_price,
+                    "credit": current_plan.annual_credit,
+                    "discount": current_plan.annual_discount,
+                    "rate": current_plan.rate,
+                    "rate_time": current_plan.rate_time,
+                }
+
+            if subscription.auto_renew and balance.cash >= plan["price"]:
+                balance.cash -= subscription.price
+                balance.subscription = SubscriptionModel.objects.create(user=subscription.user,
+                                                                        period=subscription.period,
+                                                                        start_date=midnight, **plan)
+            else:
+                free_plan = PlanModel.objects.get(title="Free")
+                balance.subscription = SubscriptionModel.objects.create(user=subscription.user,
+                                                                        period="monthly",
+                                                                        title="Free", price=free_plan.monthly_price,
+                                                                        credit=free_plan.monthly_credit,
+                                                                        discount=free_plan.monthly_discount,
+                                                                        rate=free_plan.rate,
+                                                                        rate_time=free_plan.rate_time,
+                                                                        start_date=midnight)
             balance.save()
-
-
-        elif subscription.auto_renew and balance.cash >= subscription.price:
-            balance.cash -= subscription.price
-            balance.subscription = SubscriptionModel.objects.create(user=subscription.user, period=subscription.period,
-                                                                    start_date=midnight, **plan)
-            balance.save()
-
-
-
 

@@ -4,85 +4,185 @@ from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
 from accounts.permissions import AuthPermission, AdminPermission
 from finance.models import PlanModel, SubscriptionModel, BalanceModel
-from finance.serializers import SubscriptionWriteSerializer, SubscriptionListSerializer, PlansSerializer
+from finance.serializers import SubscriptionChangeSerializer, SubscriptionListSerializer, PlansSerializer, \
+    SubscriptionManageSerializer, BalanceManageSerializer, SubscriptionSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from django.utils import timezone
 from shared.views import CustomPagination
+from django.db import transaction
+
 
 class PlansAPIView(APIView):
     def get(self, request):
         serializer = PlansSerializer(PlanModel.objects.all(), many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-class SubscriptionAPIView(APIView):
+
+class SubscriptionRestartAPIView(APIView):
     permission_classes = [AuthPermission]
 
-    @swagger_auto_schema(operation_description='Take subscription...', request_body=SubscriptionWriteSerializer)
+    @swagger_auto_schema(operation_description="Restart subscription...")
     def post(self, request):
         try:
-            serializer = SubscriptionWriteSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            with transaction.atomic():
+                balance = request.user.balance
+                old_subscription = balance.subscription
+                plan = PlanModel.objects.get(title=old_subscription.title)
 
-            period = serializer.validated_data["period"]
-            plan = PlanModel.objects.get(title=serializer.validated_data["plan"])
-            balance = request.user.balance
-            old_subscription = balance.subscription
-
-            if period == "monthly":
-                plan = {
-                    "title": plan.title,
-                    "price": plan.monthly_price,
-                    "credit": plan.monthly_credit,
-                    "discount": plan.monthly_discount,
-                    "rate": plan.rate,
-                    "rate_time": plan.rate_time,
-                }
-            else:
-                plan = {
-                    "title": plan.title,
-                    "price": plan.annual_price,
-                    "credit": plan.annual_credit,
-                    "discount": plan.annual_discount,
-                    "rate": plan.rate,
-                    "rate_time": plan.rate_time,
-                }
-
-            if plan["title"] == "Enterprise" or plan["title"] == "Free" and period == "annual" or plan[
-                "title"] == "Free" and old_subscription.title == "Free" and old_subscription.end_date > timezone.now():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-
-            price = plan["price"] * (Decimal(100 - plan["discount"]) / Decimal(100))
-
-            if plan["title"] == "Free":
-                new_subscription = SubscriptionModel.objects.filter(title="Free", user=request.user).order_by("-start_date").first()
-                if new_subscription is not None and new_subscription.end_date >= timezone.now():
-                    new_subscription.status = "active"
-                    new_subscription.save()
-                    balance.subscription = new_subscription
+                if old_subscription.period == "monthly":
+                    plan = {
+                        "title": plan.title,
+                        "price": plan.monthly_price,
+                        "credit": plan.monthly_credit,
+                        "discount": plan.monthly_discount,
+                        "rate": plan.rate,
+                        "rate_time": plan.rate_time,
+                    }
                 else:
-                    balance.subscription = SubscriptionModel.objects.create(user=request.user, period=period, **plan)
+                    plan = {
+                        "title": plan.title,
+                        "price": plan.annual_price,
+                        "credit": plan.annual_credit,
+                        "discount": plan.annual_discount,
+                        "rate": plan.rate,
+                        "rate_time": plan.rate_time,
+                    }
 
-            else:
+                if plan["title"] == "Enterprise" or plan["title"] == "Free":
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
+
+                price = plan["price"] * (Decimal(100 - plan["discount"]) / Decimal(100))
+
                 if price > balance.cash:
                     return Response(data={"message": "Not enough funds, please top up your balance."},
                                     status=status.HTTP_400_BAD_REQUEST)
 
-                balance.subscription = SubscriptionModel.objects.create(user=request.user, period=period, **plan)
+                balance.subscription = SubscriptionModel.objects.create(user=request.user, period=old_subscription.period,
+                                                                        **plan)
                 balance.cash -= price
 
-            if old_subscription.status == "active":
                 old_subscription.status = "canceled"
 
+                old_subscription.save()
+                balance.save()
 
-            old_subscription.save()
-            balance.save()
+                subscription_instance = SubscriptionSerializer(balance.subscription)
 
-            return Response(data={"message": "Your plan changed successfully."}, status=status.HTTP_200_OK)
+                return Response(data={"subscription": subscription_instance.data}, status=status.HTTP_200_OK)
 
         except Exception as error:
             print(error)
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SubscriptionChangeAPIView(APIView):
+    permission_classes = [AuthPermission]
+
+    @swagger_auto_schema(operation_description='Change subscription...', request_body=SubscriptionChangeSerializer)
+    def post(self, request):
+        try:
+            with transaction.atomic():
+                serializer = SubscriptionChangeSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+
+                period = serializer.validated_data["period"]
+                plan = PlanModel.objects.get(title=serializer.validated_data["plan"])
+                balance = request.user.balance
+                old_subscription = balance.subscription
+
+                if period == "monthly":
+                    plan = {
+                        "title": plan.title,
+                        "price": plan.monthly_price,
+                        "credit": plan.monthly_credit,
+                        "discount": plan.monthly_discount,
+                        "rate": plan.rate,
+                        "rate_time": plan.rate_time,
+                    }
+                else:
+                    plan = {
+                        "title": plan.title,
+                        "price": plan.annual_price,
+                        "credit": plan.annual_credit,
+                        "discount": plan.annual_discount,
+                        "rate": plan.rate,
+                        "rate_time": plan.rate_time,
+                    }
+
+                if plan["title"] == "Enterprise" or plan["title"] == "Free" and period == "annual" or plan[
+                    "title"] == old_subscription.title and old_subscription.period == period:
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
+
+                price = plan["price"] * (Decimal(100 - plan["discount"]) / Decimal(100))
+
+                if plan["title"] == "Free":
+                    new_subscription = SubscriptionModel.objects.filter(title="Free", user=request.user).order_by(
+                        "-start_date").first()
+                    if new_subscription is not None and new_subscription.end_date >= timezone.now():
+                        new_subscription.status = "active"
+                        new_subscription.save()
+                        balance.subscription = new_subscription
+                    else:
+                        balance.subscription = SubscriptionModel.objects.create(user=request.user, period=period, **plan)
+
+                else:
+                    if price > balance.cash:
+                        return Response(data={"message": "Not enough funds, please top up your balance."},
+                                        status=status.HTTP_400_BAD_REQUEST)
+
+                    balance.subscription = SubscriptionModel.objects.create(user=request.user, period=period, **plan)
+                    balance.cash -= price
+
+                old_subscription.status = "canceled"
+                old_subscription.save()
+                balance.save()
+
+                subscription_instance = SubscriptionSerializer(balance.subscription)
+
+                return Response(data={"subscription": subscription_instance.data}, status=status.HTTP_200_OK)
+
+        except Exception as error:
+            print(error)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SubscriptionManageAPIView(APIView):
+    permission_classes = [AuthPermission]
+
+    @swagger_auto_schema(operation_description='Manage subscription...', request_body=SubscriptionManageSerializer)
+    def patch(self, request):
+        try:
+            serializer = SubscriptionManageSerializer(
+                instance=request.user.balance.subscription,
+                data=request.data,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+        except:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class BalanceManageAPIView(APIView):
+    permission_classes = [AuthPermission]
+
+    @swagger_auto_schema(operation_description='Manage subscription...', request_body=BalanceManageSerializer)
+    def patch(self, request):
+        try:
+            serializer = BalanceManageSerializer(
+                instance=request.user.balance,
+                data=request.data,
+                partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+        except:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 class SubscriptionListAPIView(APIView):
@@ -117,46 +217,53 @@ class SubscriptionCheckAPIView(APIView):
     permission_classes = [AuthPermission, AdminPermission]
 
     def get(self, request):
-        subscriptions = SubscriptionModel.objects.filter(status="active", end_date__lt=timezone.now())
+        with transaction.atomic():
+            subscriptions = SubscriptionModel.objects.filter(status="active", end_date__lt=timezone.now())
 
-        for subscription in subscriptions:
-            subscription.status = "expired"
-            subscription.save()
+            for subscription in subscriptions:
+                subscription.status = "expired"
+                subscription.save()
 
-            local_now = timezone.localtime(timezone.now())
-            midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-            balance = BalanceModel.objects.get(user=subscription.user)
-            plan = PlanModel.objects.get(title=subscription.title)
+                local_now = timezone.localtime(timezone.now())
+                midnight = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+                balance = BalanceModel.objects.get(user=subscription.user)
 
-            if subscription.period == "monthly":
+                current_plan = PlanModel.objects.get(title=subscription.title)
+
                 plan = {
-                    "title": plan.title,
-                    "price": plan.monthly_price,
-                    "credit": plan.monthly_credit,
-                    "discount": plan.monthly_discount,
-                    "rate": plan.rate,
-                    "rate_time": plan.rate_time,
-                }
-            else:
-                plan = {
-                    "title": plan.title,
-                    "price": plan.annual_price,
-                    "credit": plan.annual_credit,
-                    "discount": plan.annual_discount,
-                    "rate": plan.rate,
-                    "rate_time": plan.rate_time,
+                    "title": current_plan.title,
+                    "price": current_plan.monthly_price,
+                    "credit": current_plan.monthly_credit,
+                    "discount": current_plan.monthly_discount,
+                    "rate": current_plan.rate,
+                    "rate_time": current_plan.rate_time,
                 }
 
-            if subscription.auto_renew and subscription.title == "Free":
-                balance.subscription = SubscriptionModel.objects.create(user=subscription.user, period=subscription.period,
-                                                                        start_date=midnight, **plan)
+                if subscription.period == "annual":
+                    plan = {
+                        "title": current_plan.title,
+                        "price": current_plan.annual_price,
+                        "credit": current_plan.annual_credit,
+                        "discount": current_plan.annual_discount,
+                        "rate": current_plan.rate,
+                        "rate_time": current_plan.rate_time,
+                    }
+
+                if subscription.auto_renew and balance.cash >= plan["price"]:
+                    balance.cash -= subscription.price
+                    balance.subscription = SubscriptionModel.objects.create(user=subscription.user,
+                                                                            period=subscription.period,
+                                                                            start_date=midnight, **plan)
+                else:
+                    free_plan = PlanModel.objects.get(title="Free")
+                    balance.subscription = SubscriptionModel.objects.create(user=subscription.user,
+                                                                            period="monthly",
+                                                                            title="Free", price=free_plan.monthly_price,
+                                                                            credit=free_plan.monthly_credit,
+                                                                            discount=free_plan.monthly_discount,
+                                                                            rate=free_plan.rate,
+                                                                            rate_time=free_plan.rate_time,
+                                                                            start_date=midnight)
                 balance.save()
 
-
-            elif subscription.auto_renew and balance.cash >= subscription.price:
-                balance.cash -= subscription.price
-                balance.subscription = SubscriptionModel.objects.create(user=subscription.user, period=subscription.period,
-                                                                        start_date=midnight, **plan)
-                balance.save()
-
-        return Response(status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_200_OK)
