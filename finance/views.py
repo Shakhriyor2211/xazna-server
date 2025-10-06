@@ -5,7 +5,7 @@ from drf_yasg.utils import swagger_auto_schema
 from accounts.permissions import AuthPermission, AdminPermission
 from finance.models import PlanModel, SubscriptionModel, BalanceModel
 from finance.serializers import SubscriptionChangeSerializer, SubscriptionListSerializer, PlansSerializer, \
-    SubscriptionManageSerializer, BalanceManageSerializer, SubscriptionSerializer
+    SubscriptionManageSerializer, BalanceManageSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from django.utils import timezone
@@ -67,9 +67,8 @@ class SubscriptionRestartAPIView(APIView):
                 old_subscription.save()
                 balance.save()
 
-                subscription_instance = SubscriptionSerializer(balance.subscription)
 
-                return Response(data={"subscription": subscription_instance.data}, status=status.HTTP_200_OK)
+                return Response(data={"message": "Subscription changed successfully."}, status=status.HTTP_200_OK)
 
         except Exception as error:
             print(error)
@@ -138,9 +137,7 @@ class SubscriptionChangeAPIView(APIView):
                 old_subscription.save()
                 balance.save()
 
-                subscription_instance = SubscriptionSerializer(balance.subscription)
-
-                return Response(data={"subscription": subscription_instance.data}, status=status.HTTP_200_OK)
+                return Response(data={"message": "Subscription changed successfully."}, status=status.HTTP_200_OK)
 
         except Exception as error:
             print(error)

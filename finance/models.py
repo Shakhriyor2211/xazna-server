@@ -8,7 +8,7 @@ from xazna.models import BaseModel
 class BalanceModel(BaseModel):
     user = models.OneToOneField("accounts.CustomUserModel", on_delete=models.CASCADE, related_name="balance")
     cash = models.DecimalField(max_digits=16, decimal_places=4, default=0)
-    chargeable = models.BooleanField(default=True)
+    chargeable = models.BooleanField(default=False)
     subscription = models.OneToOneField("SubscriptionModel", on_delete=models.SET_NULL, null=True, blank=True,
                                         related_name="subscription")
 
@@ -27,7 +27,7 @@ class SubscriptionModel(BaseModel):
     expense = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
     discount = models.DecimalField(max_digits=3, decimal_places=1,
                                    validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
-    auto_renew = models.BooleanField(default=True)
+    auto_renew = models.BooleanField(default=False)
     rate = models.PositiveBigIntegerField(default=0)
     rate_time = models.PositiveIntegerField(default=0)
     rate_usage = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
