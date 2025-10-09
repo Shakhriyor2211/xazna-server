@@ -20,7 +20,7 @@ class CustomUserAdmin(UserAdmin):
         "is_blocked",
         "created_at",
     )
-    ordering = ("-created_at",)
+    ordering = ("created_at",)
 
     list_filter = (
         "role",

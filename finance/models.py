@@ -1,3 +1,5 @@
+import uuid
+
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -40,7 +42,6 @@ class SubscriptionModel(BaseModel):
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
     user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
-
 
     def save(self, *args, **kwargs):
         if not self.end_date:
@@ -91,3 +92,27 @@ class PlanModel(BaseModel):
         verbose_name_plural = "Plans"
         ordering = ["pk"]
         db_table = "plan"
+
+
+class TransactionModel(BaseModel):
+    amount = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
+    currency = models.CharField(choices=[("uzs", "uzs"), ("usd", "usd")], default="uzs")
+    status = models.CharField(
+        choices=[("pending", "pending"), ("completed", "completed"), ("failed", "failed"), ("canceled", "canceled")],
+        default="pending")
+    provider = models.CharField(choices=[("xazna", "xazna"), ("click", "click"), ("payme", "payme")],
+                                default="xazna")
+    method = models.CharField(
+        choices=[("uzcard", "uzcard"), ("humo", "humo"), ("visa", "visa"), ("mastercard", "mastercard"),
+                 ("unionpay", "unionpay")],
+        default="uzcard")
+    user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'''{self.id}'''
+
+    class Meta:
+        verbose_name = "Transaction"
+        verbose_name_plural = "Transactions"
+        ordering = ["-created_at"]
+        db_table = "transaction"

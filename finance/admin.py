@@ -1,7 +1,20 @@
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 
-from finance.models import BalanceModel, PlanModel, SubscriptionModel
+from finance.models import BalanceModel, PlanModel, SubscriptionModel, TransactionModel
+
+
+class TransactionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "amount",
+        "currency",
+        "provider",
+        "method",
+        "status",
+        "user",
+        "created_at"
+    )
 
 
 class PlanAdmin(admin.ModelAdmin):
@@ -20,7 +33,23 @@ class PlanAdmin(admin.ModelAdmin):
         "user",
         "created_at"
     )
-    ordering = ("-created_at",)
+
+class PlanAdmin(admin.ModelAdmin):
+    exclude = ("user",)
+    list_display = (
+        "id",
+        "title",
+        "monthly_credit",
+        "annual_credit",
+        "monthly_price",
+        "annual_price",
+        "monthly_discount",
+        "annual_discount",
+        "rate",
+        "rate_time",
+        "user",
+        "created_at"
+    )
 
     def delete_model(self, request, obj):
         if obj.title == "Free" or obj.title == "Enterprise":
@@ -85,8 +114,8 @@ class SubscriptionAdmin(admin.ModelAdmin):
         "start_date",
         "end_date"
     )
-    ordering = ("-created_at",)
 
+admin.site.register(TransactionModel, TransactionAdmin)
 admin.site.register(BalanceModel, BalanceAdmin)
 admin.site.register(PlanModel, PlanAdmin)
 admin.site.register(SubscriptionModel, SubscriptionAdmin)

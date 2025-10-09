@@ -3,14 +3,31 @@ from drf_yasg import openapi
 from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
 from accounts.permissions import AuthPermission, AdminPermission
-from finance.models import PlanModel, SubscriptionModel, BalanceModel
+from finance.models import PlanModel, SubscriptionModel, BalanceModel, TransactionModel
 from finance.serializers import SubscriptionChangeSerializer, SubscriptionListSerializer, PlansSerializer, \
-    SubscriptionManageSerializer, BalanceManageSerializer
+    SubscriptionManageSerializer, BalanceManageSerializer, TransactionSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from django.utils import timezone
 from shared.views import CustomPagination
 from django.db import transaction
+
+
+class BalanceTopUpAPIView(APIView):
+    permission_classes = [AuthPermission]
+
+    @swagger_auto_schema(operation_description="Top up balance...", request_body=TransactionSerializer)
+    def post(self, request):
+        try:
+            with transaction.atomic():
+                serializer = TransactionSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save(user=request.user)
+                return Response(data=serializer.data, status=status.HTTP_200_OK)
+        except:
+            return Response(data=serializer.data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 
 class PlansAPIView(APIView):
@@ -208,6 +225,25 @@ class SubscriptionListAPIView(APIView):
         serializer = SubscriptionListSerializer(paginated_qs, many=True)
 
         return paginator.get_paginated_response(serializer.data)
+
+
+
+class TransactionListAPIView(APIView):
+    permission_classes = [AuthPermission]
+
+    def get(self, request):
+        ordering = request.query_params.get('ordering', '-created_at')
+
+        queryset = TransactionModel.objects.filter(user=request.user).order_by(ordering)
+
+        paginator = CustomPagination()
+        paginated_qs = paginator.paginate_queryset(queryset, request)
+
+        serializer = TransactionSerializer(paginated_qs, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
+
+
 
 
 class SubscriptionCheckAPIView(APIView):
