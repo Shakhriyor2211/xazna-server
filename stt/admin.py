@@ -4,7 +4,7 @@ from stt.models import STTModel, STTModelModel
 
 
 class STTAdmin(admin.ModelAdmin):
-    list_display = ("text", "user", "credit", "cash", "created_at")
+    list_display = ("text", "user", "created_at")
     ordering = ("-created_at",)
 
 

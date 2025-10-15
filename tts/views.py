@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from asgiref.sync import async_to_sync
 from drf_yasg import openapi
 from accounts.permissions import AuthPermission
+from finance.models import ExpenseModel
 from shared.models import AudioModel
 from shared.views import CustomPagination
 from tts.models import TTSModel, TTSModelModel, TTSEmotionModel, TTSAudioFormatModel
@@ -90,7 +91,9 @@ class TTSAPIView(APIView):
                 audio_instance = AudioModel.objects.create(user=request.user,
                                                            file=generate_audio(res.content, fmt=data["format"]))
 
-                tts_instance = serializer.save(audio=audio_instance, user=request.user, credit=credit_usage, cash=cash_usage)
+                tts_instance = serializer.save(audio=audio_instance, user=request.user)
+
+                ExpenseModel.objects.create(operation="tts", credit=credit_usage, cash=cash_usage, tts=tts_instance, user=request.user)
 
                 tts = TTSListSerializer(tts_instance)
 

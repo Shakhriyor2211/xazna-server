@@ -5,10 +5,9 @@ from drf_yasg.generators import OpenAPISchemaGenerator
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
-
 from accounts.urls import auth_urlpatterns, user_urlpatterns
 from shared.views import ProtectedAudioStreamView, ProtectedAudioDownloadView
-from . import settings
+from xazna import settings
 
 
 class BothHttpAndHttpsSchemaGenerator(OpenAPISchemaGenerator):
@@ -38,7 +37,12 @@ base_patterns = [
     path("tts/", include("tts.urls")),
     path("stt/", include("stt.urls")),
     path("finance/", include("finance.urls")),
+    path("subscription/", include("subscription.urls")),
+    path("plan/", include("plan.urls")),
+    path("chat/", include("chat.urls")),
 ]
+
+
 protected_media_patterns = [
     path("audio/stream/<id>/", ProtectedAudioStreamView.as_view(), name="audio_stream"),
     path("audio/download/<id>/", ProtectedAudioDownloadView.as_view(), name="audio_download")

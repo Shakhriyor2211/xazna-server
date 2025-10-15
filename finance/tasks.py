@@ -1,7 +1,10 @@
 from celery import shared_task
 from django.utils import timezone
 from django.db import transaction
-from finance.models import SubscriptionModel, BalanceModel, PlanModel
+
+from finance.models import BalanceModel
+from plan.models import PlanModel
+from subscription.models import SubscriptionModel
 
 
 @shared_task

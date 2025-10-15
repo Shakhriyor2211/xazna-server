@@ -7,8 +7,6 @@ class TTSAdmin(admin.ModelAdmin):
     list_display = (
         'text',
         'user',
-        "credit",
-        "cash",
         'created_at'
     )
     ordering = ("-created_at",)

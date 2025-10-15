@@ -1,7 +1,6 @@
 import math
 from datetime import timedelta
-
-from asgiref.sync import async_to_sync
+from io import BytesIO
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
@@ -9,14 +8,19 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from accounts.permissions import AuthPermission
+from finance.models import ExpenseModel
 from shared.models import AudioModel
-from shared.utils import send_post_request, get_audio_duration
+from shared.utils import get_audio_duration
 from shared.views import CustomPagination
 from stt.models import STTModel, STTModelModel
 from stt.serializers import STTListSerializer, STTChangeSerializer, STTSerializer
 from xazna import settings
 from django.utils import timezone
 from django.db import transaction
+from openai import OpenAI
+
+
+client = OpenAI(base_url=settings.STT_SERVER, api_key="EMPTY")
 
 
 class STTAPIView(APIView):
@@ -71,12 +75,31 @@ class STTAPIView(APIView):
                 subscription.expense += credit_usage
                 subscription.rate_usage += credit_usage
 
-                res = async_to_sync(send_post_request)(file, settings.STT_SERVER, 'file')
-                data = res.json()
+                file.seek(0)
+                file_bytes = file.read()
+
+                if not file_bytes:
+                    return Response({"message": "Uploaded file is empty"}, status=400)
+
+                audio = BytesIO(file_bytes)
+
+                transcript = client.audio.transcriptions.create(
+                    model="./largev6uz",
+                    file=audio,
+                    language="en",
+                    stream=True,
+                    response_format="text"
+                )
+
+                text = ""
+                for event in transcript:
+                    chunk = event.choices[0]["delta"]["content"]
+                    text += chunk
 
                 audio_instance = AudioModel.objects.create(user=request.user, file=file)
-                stt_instance = STTModel.objects.create(text=data["transcription"], user=request.user, audio=audio_instance,
-                                                       credit=credit_usage, cash=cash_usage)
+                stt_instance = STTModel.objects.create(text=text, user=request.user, audio=audio_instance)
+                ExpenseModel.objects.create(operation="stt", credit=credit_usage, cash=cash_usage, stt=stt_instance, user=request.user)
+
                 stt = STTListSerializer(stt_instance)
 
                 balance.save()

@@ -19,8 +19,6 @@ class TTSModel(BaseModel):
     text = models.CharField()
     user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
     audio = models.OneToOneField(AudioModel, null=True, blank=True, on_delete=models.SET_NULL)
-    credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
-    cash = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
     emotion = models.CharField(max_length=50)
     model = models.CharField(max_length=50)
     format = models.CharField(max_length=50)

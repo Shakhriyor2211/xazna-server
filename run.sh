@@ -3,8 +3,11 @@ set -e
 
 trap "kill 0" EXIT
 
-echo ">>> Starting Django server..."
+echo ">>> Starting Django gunicorn + uvicorn server..."
 gunicorn xazna.asgi:application -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8000 &
+
+echo ">>> Starting Django daphne server..."
+daphne -b 0.0.0.0 -p 8001 xazna.asgi:application &
 
 echo ">>> Starting Celery beat..."
 celery -A xazna beat -S django &

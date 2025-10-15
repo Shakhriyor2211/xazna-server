@@ -16,7 +16,7 @@ from accounts.models import CustomUserModel, SocialAccountModel, EmailConfirmOtp
 from accounts.permissions import AuthPermission, AdminPermission
 from accounts.serializers import SignUpSerializer, UserSerializer, SignInSerializer, RefreshTokenSerializer, \
     VerifyTokenSerializer, ResendEmailCodeSerializer, VerifyEmailCodeSerializer, PasswordChangeSerializer, \
-    ProfileChangeInfoSerializer, PictureModelSerializer
+    ProfileChangeInfoSerializer, PictureSerializer
 from drf_yasg.utils import swagger_auto_schema
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -756,12 +756,12 @@ class ProfileChangeImageView(APIView):
 
     @swagger_auto_schema(
         operation_description="Profile image change..",
-        request_body=PictureModelSerializer
+        request_body=PictureSerializer
     )
     def post(self, request, *args, **kwargs):
         try:
             picture = PictureModel.objects.get(user=request.user)
-            serializer = PictureModelSerializer(picture, data=request.data, partial=True)
+            serializer = PictureSerializer(picture, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
                 return Response(data=serializer.data, status=status.HTTP_200_OK)

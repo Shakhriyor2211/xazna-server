@@ -1,5 +1,4 @@
 import uuid
-from decimal import Decimal
 
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -18,8 +17,6 @@ class STTModel(BaseModel):
     )
     text = models.CharField(null=True, blank=True)
     user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
-    credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
-    cash = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
     audio = models.OneToOneField(AudioModel, null=True, blank=True, on_delete=models.SET_NULL)
 
 
@@ -39,5 +36,3 @@ class STTModelModel(BaseModel):
         verbose_name = "Models"
         verbose_name_plural = "Models"
         db_table = 'stt_model'
-
-

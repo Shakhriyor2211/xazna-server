@@ -160,14 +160,14 @@ class ProfileChangeInfoSerializer(serializers.ModelSerializer):
         }
 
 
-class PictureModelSerializer(serializers.ModelSerializer):
+class PictureSerializer(serializers.ModelSerializer):
     class Meta:
         model = PictureModel
         fields = ["portrait"]
 
 
 class UserSerializer(serializers.ModelSerializer):
-    picture = PictureModelSerializer(read_only=True)
+    picture = PictureSerializer(read_only=True)
     balance = BalanceSerializer(read_only=True)
 
     class Meta:

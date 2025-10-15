@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from finance.models import SubscriptionModel, BalanceModel, PlanModel, TransactionModel
+from finance.models import BalanceModel, TransactionModel, ExpenseModel
+from subscription.serializers import SubscriptionSerializer
 
 
 class TransactionSerializer(serializers.ModelSerializer):
@@ -12,36 +13,10 @@ class TransactionSerializer(serializers.ModelSerializer):
         }
 
 
-class PlansSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PlanModel
-        exclude = ["user", "created_at", "updated_at"]
-
-class SubscriptionChangeSerializer(serializers.Serializer):
-    plan = serializers.CharField(max_length=50)
-    period = serializers.CharField(max_length=50)
-
-
-class SubscriptionManageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SubscriptionModel
-        fields = ["auto_renew"]
-
 class BalanceManageSerializer(serializers.ModelSerializer):
     class Meta:
         model = BalanceModel
         fields = ["chargeable"]
-
-
-class SubscriptionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SubscriptionModel
-        exclude = ["user"]
-
-class SubscriptionListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SubscriptionModel
-        exclude = ["user"]
 
 
 class BalanceSerializer(serializers.ModelSerializer):
@@ -49,4 +24,10 @@ class BalanceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BalanceModel
+        exclude = ["user"]
+
+
+class ExpenseListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExpenseModel
         exclude = ["user"]
