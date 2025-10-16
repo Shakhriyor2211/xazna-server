@@ -2,7 +2,7 @@ from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
-from xazna.models import BaseModel, CreditRateBaseModel
+from xazna.models import BaseModel, CreditSubRateBaseModel
 
 
 class SubscriptionModel(BaseModel):
@@ -70,21 +70,21 @@ class ChatRateModel(BaseModel):
     class Meta:
         db_table = "sub_chat_rate"
 
-class STTCreditRateModel(CreditRateBaseModel):
+class STTCreditRateModel(CreditSubRateBaseModel):
     stt = models.OneToOneField("STTRateModel", on_delete=models.CASCADE, related_name="credit")
 
     class Meta:
         db_table = "sub_stt_credit_rate"
 
 
-class TTSCreditRateModel(CreditRateBaseModel):
+class TTSCreditRateModel(CreditSubRateBaseModel):
     tts = models.OneToOneField("TTSRateModel", on_delete=models.CASCADE, related_name="credit")
 
     class Meta:
         db_table = "sub_tts_credit_rate"
 
 
-class ChatCreditRateModel(CreditRateBaseModel):
+class ChatCreditRateModel(CreditSubRateBaseModel):
     chat = models.OneToOneField("ChatRateModel", on_delete=models.CASCADE, related_name="credit")
 
     class Meta:

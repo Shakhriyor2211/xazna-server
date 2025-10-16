@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
-from plan.models import PlanModel
+from plan.models import PlanModel, PlanMonthlyModel, PlanAnnualModel, STTRateModel, TTSRateModel, ChatRateModel, \
+    STTCreditRateModel, TTSCreditRateModel, ChatCreditRateModel, ChatSessionRateModel, PlanRateModel
+
 
 @admin.register(PlanModel)
 class PlanAdmin(admin.ModelAdmin):
@@ -8,44 +10,104 @@ class PlanAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "title",
-        "rate",
+        "monthly__credit",
+        "annual__credit",
         "user",
         "created_at"
     )
-
-    def delete_model(self, request, obj):
-        if obj.title == "Free" or obj.title == "Enterprise":
-            raise PermissionDenied("The Free plan cannot be deleted.")
-        super().delete_model(request, obj)
-
-    def delete_queryset(self, request, queryset):
-        if queryset.filter(title="Free").exists():
-            raise PermissionDenied("The Free plan cannot be deleted.")
-
-        if queryset.filter(title="Enterprise").exists():
-            raise PermissionDenied("The Free plan cannot be deleted.")
-
-        super().delete_queryset(request, queryset)
-
-    def get_exclude(self, request, obj=None):
-        exclude_fields = super().get_exclude(request, obj)
-        if obj and obj.title == "Free":
-            items = ["description", "rate", "rate_time", "monthly_credit"]
-            fields = [f.name for f in self.model._meta.concrete_fields]
-            exclude_fields += tuple(f for f in fields if f not in items)
-
-        if obj and obj.title == "Enterprise":
-            items = ["description"]
-            fields = [f.name for f in self.model._meta.concrete_fields]
-            exclude_fields += tuple(f for f in fields if f not in items)
-
-        return exclude_fields
-
 
 
     def save_model(self, request, obj, form, change):
         obj.user = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(PlanMonthlyModel)
+class PlanMonthlyAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "plan",
+        "credit",
+        "price",
+        "discount"
+    )
+
+@admin.register(PlanAnnualModel)
+class PlanAnnualAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "plan",
+        "credit",
+        "price",
+        "discount"
+    )
+
+
+@admin.register(PlanRateModel)
+class PlanRateAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "plan",
+    )
+
+
+@admin.register(STTRateModel)
+class STTRateAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "rate",
+    )
+
+
+@admin.register(TTSRateModel)
+class TTSRateAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "rate",
+    )
+
+@admin.register(ChatRateModel)
+class ChatRateAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "rate__plan",
+        "max_sessions"
+    )
+
+@admin.register(STTCreditRateModel)
+class STTCreditRateAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "stt"
+    )
+
+
+@admin.register(TTSCreditRateModel)
+class TTSCreditRateAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "tts"
+    )
+
+
+@admin.register(ChatCreditRateModel)
+class ChatCreditRateAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "chat"
+    )
+
+
+@admin.register(ChatSessionRateModel)
+class ChatSessionRateModel(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "chat",
+        "limit",
+    )
+
+
+
 
 
 

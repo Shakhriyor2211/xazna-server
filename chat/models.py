@@ -1,4 +1,5 @@
 import uuid
+from django.core.validators import MinValueValidator
 from django.db import models
 from xazna.models import BaseModel
 
@@ -41,3 +42,16 @@ class ChatMessageModel(BaseModel):
         verbose_name = "Message"
         verbose_name_plural = "Messages"
         db_table = "chat_message"
+
+
+
+class ChatModelModel(BaseModel):
+    title = models.CharField(max_length=50, unique=True)
+    user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
+    credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
+    cash = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
+
+    class Meta:
+        verbose_name = "Model"
+        verbose_name_plural = "Models"
+        db_table = 'chat_model'

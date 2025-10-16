@@ -1,9 +1,6 @@
 import uuid
-from decimal import Decimal
-
 from django.core.validators import MinValueValidator
 from django.db import models
-from accounts.models import CustomUserModel
 from shared.models import AudioModel
 from xazna.models import BaseModel
 
@@ -17,7 +14,7 @@ class TTSModel(BaseModel):
         unique=True
     )
     text = models.CharField()
-    user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
+    user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
     audio = models.OneToOneField(AudioModel, null=True, blank=True, on_delete=models.SET_NULL)
     emotion = models.CharField(max_length=50)
     model = models.CharField(max_length=50)
@@ -31,7 +28,7 @@ class TTSModel(BaseModel):
 
 class TTSEmotionModel(BaseModel):
     title = models.CharField(max_length=50, unique=True)
-    user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
+    user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = "Emotions"
@@ -39,23 +36,24 @@ class TTSEmotionModel(BaseModel):
         db_table = 'tts_emotion'
 
 
-class TTSModelModel(BaseModel):
-    title = models.CharField(max_length=50, unique=True)
-    user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
-    credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)])
-    cash = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)])
-
-    class Meta:
-        verbose_name = "Models"
-        verbose_name_plural = "Models"
-        db_table = 'tts_model'
-
 
 class TTSAudioFormatModel(BaseModel):
     title = models.CharField(max_length=50, unique=True)
-    user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
+    user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = "Audio formats"
         verbose_name_plural = "Audio formats"
         db_table = 'tts_audio_format'
+
+
+class TTSModelModel(BaseModel):
+    title = models.CharField(max_length=50, unique=True)
+    user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
+    credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)])
+    cash = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)])
+
+    class Meta:
+        verbose_name = "Model"
+        verbose_name_plural = "Models"
+        db_table = 'tts_model'

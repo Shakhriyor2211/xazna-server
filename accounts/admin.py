@@ -6,6 +6,7 @@ from accounts.models import CustomUserModel, SocialAccountModel, EmailConfirmOtp
     PictureModel
 
 
+@admin.register(CustomUserModel)
 class CustomUserAdmin(UserAdmin):
     add_form = UserCreationForm
     form = UserChangeForm
@@ -120,6 +121,7 @@ class CustomUserAdmin(UserAdmin):
             obj.groups.clear()
 
 
+@admin.register(SocialAccountModel)
 class SocialAccountAdmin(admin.ModelAdmin):
     list_display = (
         "user",
@@ -127,7 +129,7 @@ class SocialAccountAdmin(admin.ModelAdmin):
         "provider_user_id"
     )
 
-
+@admin.register(EmailConfirmOtpModel)
 class EmailConfirmOtpAdmin(admin.ModelAdmin):
     list_display = (
         "user",
@@ -137,13 +139,15 @@ class EmailConfirmOtpAdmin(admin.ModelAdmin):
         "status"
     )
 
-class PasswordResetAdmin(admin.ModelAdmin):
+@admin.register(PasswordResetTokenModel)
+class PasswordResetTokenAdmin(admin.ModelAdmin):
     list_display = (
         "user",
         "token",
         "created_at"
     )
 
+@admin.register(PictureModel)
 class PictureAdmin(admin.ModelAdmin):
     list_display = (
         "user",
@@ -152,10 +156,5 @@ class PictureAdmin(admin.ModelAdmin):
     )
 
 
-admin.site.register(CustomUserModel, CustomUserAdmin)
-admin.site.register(SocialAccountModel, SocialAccountAdmin)
-admin.site.register(PictureModel, PictureAdmin)
-admin.site.register(EmailConfirmOtpModel, EmailConfirmOtpAdmin)
-admin.site.register(PasswordResetTokenModel, PasswordResetAdmin)
-admin.site.site_header = "My project"
+admin.site.site_header = "Xazna ai"
 admin.site.index_title = "Features area"

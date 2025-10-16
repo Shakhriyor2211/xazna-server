@@ -2,6 +2,7 @@ from django.contrib import admin
 from shared.models import AudioModel
 
 
+@admin.register(AudioModel)
 class AudioAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -10,5 +11,3 @@ class AudioAdmin(admin.ModelAdmin):
         "created_at"
     )
 
-
-admin.site.register(AudioModel, AudioAdmin)

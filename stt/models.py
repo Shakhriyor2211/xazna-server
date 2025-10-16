@@ -1,8 +1,6 @@
 import uuid
-
 from django.core.validators import MinValueValidator
 from django.db import models
-from accounts.models import CustomUserModel
 from shared.models import AudioModel
 from xazna.models import BaseModel
 
@@ -16,7 +14,7 @@ class STTModel(BaseModel):
         unique=True
     )
     text = models.CharField(null=True, blank=True)
-    user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
+    user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
     audio = models.OneToOneField(AudioModel, null=True, blank=True, on_delete=models.SET_NULL)
 
 
@@ -28,11 +26,11 @@ class STTModel(BaseModel):
 
 class STTModelModel(BaseModel):
     title = models.CharField(max_length=50, unique=True)
-    user = models.ForeignKey(CustomUserModel, on_delete=models.CASCADE)
+    user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
     credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
     cash = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
 
     class Meta:
-        verbose_name = "Models"
+        verbose_name = "Model"
         verbose_name_plural = "Models"
         db_table = 'stt_model'

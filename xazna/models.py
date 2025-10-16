@@ -10,10 +10,15 @@ class BaseModel(models.Model):
         abstract = True
 
 
-class CreditRateBaseModel(BaseModel):
+class CreditPlanRateBaseModel(BaseModel):
     limit = models.PositiveBigIntegerField(default=0)
-    usage = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
     time = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        abstract = True
+
+class CreditSubRateBaseModel(CreditPlanRateBaseModel):
+    usage = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
     reset = models.DateTimeField(null=True, blank=True)
 
     class Meta:

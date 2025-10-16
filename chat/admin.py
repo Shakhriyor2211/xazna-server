@@ -1,8 +1,22 @@
 from django.contrib import admin
-from .models import ChatSessionModel, ChatMessageModel
+from .models import ChatSessionModel, ChatMessageModel, ChatModelModel
 
 
+@admin.register(ChatModelModel)
+class TTSModelAdmin(admin.ModelAdmin):
+    exclude = ("user",)
+    list_display = (
+        "title",
+        "user",
+        "credit",
+        "cash",
+        "created_at",
+    )
+    ordering = ("-created_at",)
 
+    def save_model(self, request, obj, form, change):
+        obj.user = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(ChatMessageModel)

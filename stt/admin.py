@@ -2,12 +2,13 @@ from django.contrib import admin
 from stt.models import STTModel, STTModelModel
 
 
-
+@admin.register(STTModel)
 class STTAdmin(admin.ModelAdmin):
     list_display = ("text", "user", "created_at")
     ordering = ("-created_at",)
 
 
+@admin.register(STTModelModel)
 class STTModelAdmin(admin.ModelAdmin):
     exclude = ("user",)
 
@@ -25,5 +26,3 @@ class STTModelAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-admin.site.register(STTModelModel, STTModelAdmin)
-admin.site.register(STTModel, STTAdmin)
