@@ -1,15 +1,30 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
+from accounts.permissions import AuthPermission
 from chat.models import ChatSessionModel, ChatMessageModel
 from chat.serializers import ChatMessageSerializer
 
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    permission_classes = [AuthPermission]
+
+    async def check_permissions(self):
+        for permission_class in self.permission_classes:
+            permission = permission_class()
+            has_perm = await sync_to_async(permission.has_permission)(self.scope)
+            if not has_perm:
+                return False
+        return True
+
     async def connect(self):
         self.session_id = self.scope["url_route"]["kwargs"]["session_id"]
         self.room_group_name = f"""chat_{self.session_id}"""
+
+        if not await self.check_permissions():
+            await self.close(code=4001)
+            return
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
@@ -54,6 +69,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             content=content,
             status="pending",
         )
-
+        print(message)
         return ChatMessageSerializer(message).data
 

@@ -14,8 +14,6 @@ class ChatSessionModel(BaseModel):
     )
     user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
-    rate = models.PositiveBigIntegerField(default=0)
-    rate_usage = models.PositiveBigIntegerField(default=0)
 
     class Meta:
         verbose_name = "Session"

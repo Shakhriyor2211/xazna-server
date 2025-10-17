@@ -86,7 +86,7 @@ class TTSAPIView(APIView):
                 subscription.expense += credit_usage
                 credit_rate.usage += credit_usage
 
-                res = async_to_sync(send_post_request)({"emotion": data.get("emotion"), "text": data["text"]},
+                res = async_to_sync(send_post_request)({"text": data["text"], "emotion": data.get("emotion")},
                                                        settings.TTS_SERVER)
 
                 audio_instance = AudioModel.objects.create(user=request.user,
