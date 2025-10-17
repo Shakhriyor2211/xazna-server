@@ -1,7 +1,6 @@
 from django.contrib import admin
-from django.core.exceptions import PermissionDenied
-from plan.models import PlanModel, PlanMonthlyModel, PlanAnnualModel, STTRateModel, TTSRateModel, ChatRateModel, \
-    STTCreditRateModel, TTSCreditRateModel, ChatCreditRateModel, ChatSessionRateModel, PlanRateModel
+from plan.models import PlanModel, PlanMonthlyModel, PlanAnnualModel, PlanSTTRateModel, PlanTTSRateModel, PlanChatRateModel, \
+    PlanSTTCreditRateModel, PlanTTSCreditRateModel, PlanChatCreditRateModel, PlanChatSessionRateModel, PlanRateModel
 
 
 @admin.register(PlanModel)
@@ -51,7 +50,7 @@ class PlanRateAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(STTRateModel)
+@admin.register(PlanSTTRateModel)
 class STTRateAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -59,14 +58,14 @@ class STTRateAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(TTSRateModel)
+@admin.register(PlanTTSRateModel)
 class TTSRateAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "rate",
     )
 
-@admin.register(ChatRateModel)
+@admin.register(PlanChatRateModel)
 class ChatRateAdmin(admin.ModelAdmin):
     list_display = (
         "id",
@@ -74,31 +73,37 @@ class ChatRateAdmin(admin.ModelAdmin):
         "max_sessions"
     )
 
-@admin.register(STTCreditRateModel)
+@admin.register(PlanSTTCreditRateModel)
 class STTCreditRateAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "stt"
+        "stt",
+        "limit",
+        "time",
     )
 
 
-@admin.register(TTSCreditRateModel)
+@admin.register(PlanTTSCreditRateModel)
 class TTSCreditRateAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "tts"
+        "tts",
+        "limit",
+        "time",
     )
 
 
-@admin.register(ChatCreditRateModel)
+@admin.register(PlanChatCreditRateModel)
 class ChatCreditRateAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "chat"
+        "chat",
+        "limit",
+        "time",
     )
 
 
-@admin.register(ChatSessionRateModel)
+@admin.register(PlanChatSessionRateModel)
 class ChatSessionRateModel(admin.ModelAdmin):
     list_display = (
         "id",

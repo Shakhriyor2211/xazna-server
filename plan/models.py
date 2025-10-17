@@ -14,7 +14,7 @@ class PlanModel(BaseModel):
     )
 
     def __str__(self):
-        return f'''{self.title}'''
+        return f'''{self.id}'''
 
     class Meta:
         verbose_name = "Data"
@@ -60,7 +60,7 @@ class PlanRateModel(BaseModel):
         return self.plan.title
 
 
-class STTRateModel(BaseModel):
+class PlanSTTRateModel(BaseModel):
     rate = models.OneToOneField("PlanRateModel", on_delete=models.CASCADE, related_name="stt")
 
     class Meta:
@@ -72,7 +72,7 @@ class STTRateModel(BaseModel):
         return self.rate.plan.title
 
 
-class TTSRateModel(BaseModel):
+class PlanTTSRateModel(BaseModel):
     rate = models.OneToOneField("PlanRateModel", on_delete=models.CASCADE, related_name="tts")
 
     class Meta:
@@ -83,7 +83,7 @@ class TTSRateModel(BaseModel):
     def __str__(self):
         return self.rate.plan.title
 
-class ChatRateModel(BaseModel):
+class PlanChatRateModel(BaseModel):
     rate = models.OneToOneField("PlanRateModel", on_delete=models.CASCADE, related_name="chat")
     max_sessions = models.PositiveIntegerField(default=0)
 
@@ -95,8 +95,8 @@ class ChatRateModel(BaseModel):
     def __str__(self):
         return self.rate.plan.title
 
-class STTCreditRateModel(CreditPlanRateBaseModel):
-    stt = models.OneToOneField("STTRateModel", on_delete=models.CASCADE, related_name="credit")
+class PlanSTTCreditRateModel(CreditPlanRateBaseModel):
+    stt = models.OneToOneField("PlanSTTRateModel", on_delete=models.CASCADE, related_name="credit")
 
     class Meta:
         verbose_name = "STT credit rate"
@@ -104,8 +104,8 @@ class STTCreditRateModel(CreditPlanRateBaseModel):
         db_table = "plan_stt_credit_rate"
 
 
-class TTSCreditRateModel(CreditPlanRateBaseModel):
-    tts = models.OneToOneField("TTSRateModel", on_delete=models.CASCADE, related_name="credit")
+class PlanTTSCreditRateModel(CreditPlanRateBaseModel):
+    tts = models.OneToOneField("PlanTTSRateModel", on_delete=models.CASCADE, related_name="credit")
 
     class Meta:
         verbose_name = "TTS credit rate"
@@ -113,8 +113,8 @@ class TTSCreditRateModel(CreditPlanRateBaseModel):
         db_table = "plan_tts_credit_rate"
 
 
-class ChatCreditRateModel(CreditPlanRateBaseModel):
-    chat = models.OneToOneField("ChatRateModel", on_delete=models.CASCADE, related_name="credit")
+class PlanChatCreditRateModel(CreditPlanRateBaseModel):
+    chat = models.OneToOneField("PlanChatRateModel", on_delete=models.CASCADE, related_name="credit")
 
     class Meta:
         verbose_name = "Chat credit rate"
@@ -123,9 +123,10 @@ class ChatCreditRateModel(CreditPlanRateBaseModel):
 
 
 
-class ChatSessionRateModel(BaseModel):
-    chat = models.OneToOneField("ChatRateModel", on_delete=models.CASCADE, related_name="session")
-    limit = models.PositiveBigIntegerField(default=0)
+class PlanChatSessionRateModel(BaseModel):
+    chat = models.OneToOneField("PlanChatRateModel", on_delete=models.CASCADE, related_name="session")
+    limit = models.DecimalField(max_digits=16, decimal_places=4,
+                                validators=[MinValueValidator(0)], default=0)
 
     class Meta:
         verbose_name = "Chat session rate"

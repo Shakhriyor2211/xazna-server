@@ -33,71 +33,143 @@ class SubscriptionModel(BaseModel):
 
         super().save(*args, **kwargs)
 
+
+    def create_relations(self, plan, overrides=None):
+        overrides = overrides or {}
+
+        sub_rate = SubRateModel.objects.create(subscription=self)
+        stt_rate = SubSTTRateModel.objects.create(rate=sub_rate)
+        tts_rate = SubTTSRateModel.objects.create(rate=sub_rate)
+        chat_rate = SubChatRateModel.objects.create(rate=sub_rate)
+
+        SubSTTCreditRateModel.objects.create(
+            stt=stt_rate,
+            limit=overrides.get("stt_credit_limit", getattr(plan.rate.stt.credit, "limit", 0)),
+            time=overrides.get("stt_credit_time", getattr(plan.rate.stt.credit, "time", 0)),
+        )
+
+        SubTTSCreditRateModel.objects.create(
+            tts=tts_rate,
+            limit=overrides.get("tts_credit_limit", getattr(plan.rate.tts.credit, "limit", 0)),
+            time=overrides.get("tts_credit_time", getattr(plan.rate.tts.credit, "time", 0)),
+        )
+
+        SubChatCreditRateModel.objects.create(
+            chat=chat_rate,
+            limit=overrides.get("chat_credit_limit", getattr(plan.rate.chat.credit, "limit", 0)),
+            time=overrides.get("chat_credit_time", getattr(plan.rate.chat.credit, "time", 0)),
+        )
+
+        SubChatSessionRateModel.objects.create(
+            chat=chat_rate,
+            limit=overrides.get("chat_session_limit", getattr(plan.rate.chat.session, "limit", 0)),
+        )
+
+        return {
+            "sub_rate": sub_rate,
+            "stt_rate": stt_rate,
+            "tts_rate": tts_rate,
+            "chat_rate": chat_rate,
+        }
+
     def __str__(self):
-        return f'''{self.title}'''
+        return f'''{self.id}'''
 
     class Meta:
-        verbose_name = "Subscription"
-        verbose_name_plural = "Subscriptions"
+        verbose_name = "Data"
+        verbose_name_plural = "Data"
         db_table = "sub"
 
 
 
-class SubscriptionRateModel(BaseModel):
+class SubRateModel(BaseModel):
     subscription = models.OneToOneField("SubscriptionModel", on_delete=models.CASCADE, related_name="rate")
 
     class Meta:
+        verbose_name = "Rate"
+        verbose_name_plural = "Rates"
         db_table = "sub_rate"
 
+    def __str__(self):
+        return self.subscription.title
 
 
-class STTRateModel(BaseModel):
-    rate = models.OneToOneField("SubscriptionRateModel", on_delete=models.CASCADE, related_name="stt")
+
+class SubSTTRateModel(BaseModel):
+    rate = models.OneToOneField("SubRateModel", on_delete=models.CASCADE, related_name="stt")
+
     class Meta:
+        verbose_name = "STT rate"
+        verbose_name_plural = "STT rates"
         db_table = "sub_stt_rate"
 
+    def __str__(self):
+        return self.rate.subscription.title
 
-class TTSRateModel(BaseModel):
-    rate = models.OneToOneField("SubscriptionRateModel", on_delete=models.CASCADE, related_name="tts")
+
+class SubTTSRateModel(BaseModel):
+    rate = models.OneToOneField("SubRateModel", on_delete=models.CASCADE, related_name="tts")
+
     class Meta:
+        verbose_name = "TTS rate"
+        verbose_name_plural = "TTS rates"
         db_table = "sub_tts_rate"
 
+    def __str__(self):
+        return self.rate.subscription.title
 
-class ChatRateModel(BaseModel):
-    rate = models.OneToOneField("SubscriptionRateModel", on_delete=models.CASCADE, related_name="chat")
+
+class SubChatRateModel(BaseModel):
+    rate = models.OneToOneField("SubRateModel", on_delete=models.CASCADE, related_name="chat")
     max_sessions = models.PositiveIntegerField(default=0)
 
     class Meta:
+        verbose_name = "Chat rate"
+        verbose_name_plural = "Chat rates"
         db_table = "sub_chat_rate"
 
-class STTCreditRateModel(CreditSubRateBaseModel):
-    stt = models.OneToOneField("STTRateModel", on_delete=models.CASCADE, related_name="credit")
+    def __str__(self):
+        return self.rate.subscription.title
+
+class SubSTTCreditRateModel(CreditSubRateBaseModel):
+    stt = models.OneToOneField("SubSTTRateModel", on_delete=models.CASCADE, related_name="credit")
 
     class Meta:
+        verbose_name = "Stt credit rate"
+        verbose_name_plural = "STT credit rates"
         db_table = "sub_stt_credit_rate"
 
 
-class TTSCreditRateModel(CreditSubRateBaseModel):
-    tts = models.OneToOneField("TTSRateModel", on_delete=models.CASCADE, related_name="credit")
+
+
+class SubTTSCreditRateModel(CreditSubRateBaseModel):
+    tts = models.OneToOneField("SubTTSRateModel", on_delete=models.CASCADE, related_name="credit")
 
     class Meta:
+        verbose_name = "TTS credit rate"
+        verbose_name_plural = "TTS credit rates"
         db_table = "sub_tts_credit_rate"
 
 
-class ChatCreditRateModel(CreditSubRateBaseModel):
-    chat = models.OneToOneField("ChatRateModel", on_delete=models.CASCADE, related_name="credit")
+class SubChatCreditRateModel(CreditSubRateBaseModel):
+    chat = models.OneToOneField("SubChatRateModel", on_delete=models.CASCADE, related_name="credit")
 
     class Meta:
+        verbose_name = "Chat credit rate"
+        verbose_name_plural = "Chat credit rates"
         db_table = "sub_chat_credit_rate"
 
 
-class ChatSessionRateModel(BaseModel):
-    chat = models.OneToOneField("ChatRateModel", on_delete=models.CASCADE, related_name="session")
-    limit = models.PositiveBigIntegerField(default=0)
+class SubChatSessionRateModel(BaseModel):
+    chat = models.OneToOneField("SubChatRateModel", on_delete=models.CASCADE, related_name="session")
+    limit = models.DecimalField(max_digits=16, decimal_places=4,
+                                validators=[MinValueValidator(0)], default=0)
     usage = models.DecimalField(max_digits=16, decimal_places=4,
                                 validators=[MinValueValidator(0)], default=0)
 
     class Meta:
+        verbose_name = "Chat session rate"
+        verbose_name_plural = "Chat session rates"
         db_table = "sub_chat_session_rate"
 
 

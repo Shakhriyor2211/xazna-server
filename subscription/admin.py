@@ -1,5 +1,6 @@
 from django.contrib import admin
-from subscription.models import SubscriptionModel
+from subscription.models import SubscriptionModel, SubRateModel, SubSTTRateModel, SubTTSRateModel, SubChatRateModel, \
+    SubSTTCreditRateModel, SubTTSCreditRateModel, SubChatCreditRateModel, SubChatSessionRateModel
 
 
 @admin.register(SubscriptionModel)
@@ -7,13 +8,87 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "title",
-        "expense",
         "credit",
+        "expense",
         "status",
         "auto_renew",
         "user",
-        "rate",
+        "rate__tts__credit__limit",
+        "rate__tts__credit__usage",
+        "rate__stt__credit__limit",
+        "rate__stt__credit__usage",
+        "rate__chat__credit__limit",
+        "rate__chat__credit__usage",
+        "rate__chat__session__limit",
+        "rate__chat__session__usage",
         "start_date",
         "end_date"
     )
+
+
+
+    @admin.register(SubRateModel)
+    class SubRateAdmin(admin.ModelAdmin):
+        list_display = (
+            "id",
+            "subscription",
+        )
+
+    @admin.register(SubSTTRateModel)
+    class STTRateAdmin(admin.ModelAdmin):
+        list_display = (
+            "id",
+            "rate",
+        )
+
+    @admin.register(SubTTSRateModel)
+    class TTSRateAdmin(admin.ModelAdmin):
+        list_display = (
+            "id",
+            "rate",
+        )
+
+    @admin.register(SubChatRateModel)
+    class ChatRateAdmin(admin.ModelAdmin):
+        list_display = (
+            "id",
+            "rate__subscription",
+            "max_sessions"
+        )
+
+    @admin.register(SubSTTCreditRateModel)
+    class STTCreditRateAdmin(admin.ModelAdmin):
+        list_display = (
+            "id",
+            "stt",
+            "limit",
+            "time",
+        )
+
+    @admin.register(SubTTSCreditRateModel)
+    class TTSCreditRateAdmin(admin.ModelAdmin):
+        list_display = (
+            "id",
+            "tts",
+            "limit",
+            "time",
+        )
+
+    @admin.register(SubChatCreditRateModel)
+    class ChatCreditRateAdmin(admin.ModelAdmin):
+        list_display = (
+            "id",
+            "chat",
+            "limit",
+            "time",
+        )
+
+    @admin.register(SubChatSessionRateModel)
+    class ChatSessionRateModel(admin.ModelAdmin):
+        list_display = (
+            "id",
+            "chat",
+            "limit",
+        )
+
 
