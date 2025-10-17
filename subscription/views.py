@@ -233,4 +233,5 @@ class SubscriptionCheckAPIView(APIView):
                                                                             start_date=midnight)
                 balance.save()
 
+
             return Response(status=status.HTTP_200_OK)
