@@ -39,15 +39,18 @@ class STTAPIView(APIView):
                 file = serializer.validated_data["file"]
 
                 plan = STTModelModel.objects.get(title=model)
+
                 balance = request.user.balance
                 subscription = balance.subscription
+                credit_rate = subscription.rate.stt.credit
 
-                if subscription.rate_reset is None or subscription.rate_reset < timezone.now():
-                    subscription.rate_reset = timezone.now() + timedelta(minutes=subscription.rate_time)
-                    subscription.rate_usage = 0
+
+                if credit_rate.reset is None or credit_rate.reset < timezone.now():
+                    credit_rate.reset= timezone.now() + timedelta(minutes=credit_rate.time)
+                    credit_rate.usage = 0
 
                 credit_avail = subscription.credit - subscription.expense
-                credit_active = min(credit_avail, subscription.rate - subscription.rate_usage)
+                credit_active = min(credit_avail, credit_rate.limit - credit_rate.usage)
                 audio_duration = math.ceil(get_audio_duration(file))
                 credit_usage = audio_duration * plan.credit
                 cash_usage = 0
@@ -73,7 +76,7 @@ class STTAPIView(APIView):
                                         status=status.HTTP_403_FORBIDDEN)
 
                 subscription.expense += credit_usage
-                subscription.rate_usage += credit_usage
+                credit_rate.usage += credit_usage
 
                 file.seek(0)
                 file_bytes = file.read()
@@ -104,6 +107,7 @@ class STTAPIView(APIView):
 
                 balance.save()
                 subscription.save()
+                credit_rate.save()
 
                 return Response(data=stt.data, status=status.HTTP_200_OK)
 

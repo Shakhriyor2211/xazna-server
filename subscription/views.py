@@ -202,21 +202,19 @@ class SubscriptionCheckAPIView(APIView):
 
                 plan = {
                     "title": current_plan.title,
-                    "price": current_plan.monthly_price,
-                    "credit": current_plan.monthly_credit,
-                    "discount": current_plan.monthly_discount,
+                    "price": current_plan.monthly.price,
+                    "credit": current_plan.monthly.credit,
+                    "discount": current_plan.monthly.discount,
                     "rate": current_plan.rate,
-                    "rate_time": current_plan.rate_time,
                 }
 
                 if subscription.period == "annual":
                     plan = {
                         "title": current_plan.title,
-                        "price": current_plan.annual_price,
-                        "credit": current_plan.annual_credit,
-                        "discount": current_plan.annual_discount,
+                        "price": current_plan.annual.price,
+                        "credit": current_plan.annual.credit,
+                        "discount": current_plan.annual.discount,
                         "rate": current_plan.rate,
-                        "rate_time": current_plan.rate_time,
                     }
 
                 if subscription.auto_renew and balance.cash >= plan["price"]:
@@ -228,11 +226,10 @@ class SubscriptionCheckAPIView(APIView):
                     free_plan = PlanModel.objects.get(title="Free")
                     balance.subscription = SubscriptionModel.objects.create(user=subscription.user,
                                                                             period="monthly",
-                                                                            title="Free", price=free_plan.monthly_price,
-                                                                            credit=free_plan.monthly_credit,
-                                                                            discount=free_plan.monthly_discount,
+                                                                            title="Free", price=free_plan.monthly.price,
+                                                                            credit=free_plan.monthly.credit,
+                                                                            discount=free_plan.monthly.discount,
                                                                             rate=free_plan.rate,
-                                                                            rate_time=free_plan.rate_time,
                                                                             start_date=midnight)
                 balance.save()
 

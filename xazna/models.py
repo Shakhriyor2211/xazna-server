@@ -11,7 +11,8 @@ class BaseModel(models.Model):
 
 
 class CreditPlanRateBaseModel(BaseModel):
-    limit = models.PositiveBigIntegerField(default=0)
+    limit = models.DecimalField(max_digits=16, decimal_places=4,
+                                validators=[MinValueValidator(0)], default=0)
     time = models.PositiveIntegerField(default=0)
 
     class Meta:

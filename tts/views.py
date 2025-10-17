@@ -50,13 +50,14 @@ class TTSAPIView(APIView):
                 plan = TTSModelModel.objects.get(title=data["model"])
                 balance = request.user.balance
                 subscription = balance.subscription
+                credit_rate = subscription.rate.stt.credit
 
-                if subscription.rate_reset is None or subscription.rate_reset < timezone.now():
-                    subscription.rate_reset = timezone.now() + timedelta(minutes=subscription.rate_time)
-                    subscription.rate_usage = 0
+                if credit_rate.reset is None or credit_rate.reset < timezone.now():
+                    credit_rate.reset = timezone.now() + timedelta(minutes=credit_rate.time)
+                    credit_rate.usage = 0
 
                 credit_avail = subscription.credit - subscription.expense
-                credit_active = min(credit_avail, subscription.rate - subscription.rate_usage)
+                credit_active = min(credit_avail, credit_rate.limit - credit_rate.usage)
                 char_length = len(data["text"])
                 credit_usage = char_length * plan.credit
                 cash_usage = 0
@@ -83,7 +84,7 @@ class TTSAPIView(APIView):
                                         status=status.HTTP_403_FORBIDDEN)
 
                 subscription.expense += credit_usage
-                subscription.rate_usage += credit_usage
+                credit_rate.usage += credit_usage
 
                 res = async_to_sync(send_post_request)({"emotion": data.get("emotion"), "text": data["text"]},
                                                        settings.TTS_SERVER)
@@ -99,6 +100,7 @@ class TTSAPIView(APIView):
 
                 balance.save()
                 subscription.save()
+                credit_rate.save()
 
                 return Response(data=tts.data, status=status.HTTP_200_OK)
 
