@@ -21,7 +21,7 @@ class TTSModelAdmin(admin.ModelAdmin):
 
 @admin.register(ChatMessageModel)
 class ChatMessageAdmin(admin.ModelAdmin):
-    list_display = ("id", "session", "role", "status", "short_content", "created_at")
+    list_display = ("id", "session", "role", "status", "short_content", "error", "created_at")
     list_filter = ("role", "status", "created_at")
     search_fields = ("content", "session__title", "session__user__email")
 

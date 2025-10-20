@@ -2,11 +2,10 @@ from decimal import Decimal
 from drf_yasg import openapi
 from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
-from accounts.permissions import AuthPermission, AdminPermission
+from xazna.permissions import AuthPermission, AdminPermission
 from finance.models import BalanceModel
 from plan.models import PlanModel
-from subscription.models import SubscriptionModel, SubRateModel, SubSTTRateModel, SubTTSRateModel, SubChatRateModel, \
-    SubSTTCreditRateModel, SubTTSCreditRateModel, SubChatCreditRateModel, SubChatSessionRateModel
+from subscription.models import SubscriptionModel
 from subscription.serializers import SubscriptionChangeSerializer, SubscriptionListSerializer, \
     SubscriptionManageSerializer
 from rest_framework import status

@@ -31,7 +31,7 @@ class BalanceAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "cash",
-        "subscription__expense",
+        "subscription__credit_expense",
         "subscription__credit",
         "subscription__title",
         "user",

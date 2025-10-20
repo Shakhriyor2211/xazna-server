@@ -6,6 +6,8 @@ from xazna.models import BaseModel, CreditPlanRateBaseModel
 class PlanModel(BaseModel):
     title = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True, null=True)
+    chat_session = models.PositiveIntegerField(default=0)
+    chat_context = models.PositiveIntegerField(default=0)
     user = models.ForeignKey(
         "accounts.CustomUserModel",
         on_delete=models.SET_NULL,
@@ -85,7 +87,6 @@ class PlanTTSRateModel(BaseModel):
 
 class PlanChatRateModel(BaseModel):
     rate = models.OneToOneField("PlanRateModel", on_delete=models.CASCADE, related_name="chat")
-    max_sessions = models.PositiveIntegerField(default=0)
 
     class Meta:
         verbose_name = "Chat rate"

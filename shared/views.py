@@ -3,7 +3,7 @@ import os
 from django.http import Http404, FileResponse
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
-from accounts.permissions import AuthPermission
+from xazna.permissions import AuthPermission
 from shared.models import AudioModel
 
 

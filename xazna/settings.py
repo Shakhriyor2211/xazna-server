@@ -48,6 +48,7 @@ CELERY_BEAT_SCHEDULE = {
 
 TTS_SERVER = os.getenv("TTS_SERVER")
 STT_SERVER = os.getenv("STT_SERVER")
+LLM_SERVER = os.getenv("LLM_SERVER")
 
 CELERY_BROKER_URL = f"redis://{os.getenv("REDIS_HOST")}:6379/0"
 CELERY_RESULT_BACKEND = f"redis://{os.getenv("REDIS_HOST")}:6379/0"
@@ -112,7 +113,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "xazna.middleware.CoreMiddleware",
+    "xazna.middleware.HTTPAuthMiddleware",
+    # "xazna.middleware.CoreMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 

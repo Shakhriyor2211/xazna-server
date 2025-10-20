@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from accounts.permissions import AuthPermission
+from xazna.permissions import AuthPermission
 from .models import ChatSessionModel, ChatMessageModel
 from .serializers import ChatSessionSerializer, ChatMessageSerializer
 from drf_yasg.utils import swagger_auto_schema

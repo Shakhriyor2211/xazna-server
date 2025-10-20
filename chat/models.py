@@ -35,6 +35,7 @@ class ChatMessageModel(BaseModel):
     role = models.CharField(max_length=20, choices=[("user", "user"), ("assistant", "assistant")])
     status = models.CharField(choices=[("pending", "pending"), ("completed", "completed"), ("failed", "failed")])
     content = models.TextField(null=True, blank=True)
+    error = models.TextField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Message"

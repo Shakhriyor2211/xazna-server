@@ -52,7 +52,7 @@ class PlanChatRateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PlanChatRateModel
-        fields = ["max_sessions", "credit", "session"]
+        fields = ["credit", "session"]
 
 
 class PlanRateSerializer(serializers.ModelSerializer):

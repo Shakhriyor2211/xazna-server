@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from asgiref.sync import async_to_sync
 from drf_yasg import openapi
-from accounts.permissions import AuthPermission
+from xazna.permissions import AuthPermission
 from finance.models import ExpenseModel
 from shared.models import AudioModel
 from shared.views import CustomPagination
@@ -56,7 +56,7 @@ class TTSAPIView(APIView):
                     credit_rate.reset = timezone.now() + timedelta(minutes=credit_rate.time)
                     credit_rate.usage = 0
 
-                credit_avail = subscription.credit - subscription.expense
+                credit_avail = subscription.credit - subscription.credit_expense
                 credit_active = min(credit_avail, credit_rate.limit - credit_rate.usage)
                 char_length = len(data["text"])
                 credit_usage = char_length * plan.credit
@@ -83,7 +83,7 @@ class TTSAPIView(APIView):
                         return Response(data={"message": "Request limit exceeded."},
                                         status=status.HTTP_403_FORBIDDEN)
 
-                subscription.expense += credit_usage
+                subscription.credit_expense += credit_usage
                 credit_rate.usage += credit_usage
 
                 res = async_to_sync(send_post_request)({"text": data["text"], "emotion": data.get("emotion")},

@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
-from accounts.permissions import AuthPermission
+from xazna.permissions import AuthPermission
 from finance.models import TransactionModel, ExpenseModel
 from finance.serializers import BalanceManageSerializer, TransactionSerializer, ExpenseListSerializer
 from rest_framework import status

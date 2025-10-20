@@ -8,7 +8,13 @@ from xazna.models import BaseModel, CreditSubRateBaseModel
 class SubscriptionModel(BaseModel):
     title = models.CharField(max_length=50)
     credit = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
-    expense = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
+    credit_expense = models.DecimalField(max_digits=16, decimal_places=4, validators=[MinValueValidator(0)], default=0)
+    chat_session = models.PositiveIntegerField(default=0)
+    chat_session_expense = models.PositiveIntegerField(default=0)
+    chat_context = models.PositiveIntegerField(default=0)
+    chat_context_expense = models.PositiveIntegerField(default=0)
+    session = models.PositiveIntegerField(default=0)
+    session_expense = models.PositiveIntegerField(default=0)
     discount = models.DecimalField(max_digits=3, decimal_places=1,
                                    validators=[MinValueValidator(0), MaxValueValidator(100)], default=0)
     auto_renew = models.BooleanField(default=False)
@@ -81,7 +87,6 @@ class SubscriptionModel(BaseModel):
         db_table = "sub"
 
 
-
 class SubRateModel(BaseModel):
     subscription = models.OneToOneField("SubscriptionModel", on_delete=models.CASCADE, related_name="rate")
 
@@ -121,7 +126,6 @@ class SubTTSRateModel(BaseModel):
 
 class SubChatRateModel(BaseModel):
     rate = models.OneToOneField("SubRateModel", on_delete=models.CASCADE, related_name="chat")
-    max_sessions = models.PositiveIntegerField(default=0)
 
     class Meta:
         verbose_name = "Chat rate"

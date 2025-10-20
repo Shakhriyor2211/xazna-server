@@ -9,7 +9,11 @@ class SubscriptionAdmin(admin.ModelAdmin):
         "id",
         "title",
         "credit",
-        "expense",
+        "credit_expense",
+        "chat_session",
+        "chat_session_expense",
+        "chat_context",
+        "chat_context_expense",
         "status",
         "auto_renew",
         "user",
@@ -52,8 +56,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     class ChatRateAdmin(admin.ModelAdmin):
         list_display = (
             "id",
-            "rate__subscription",
-            "max_sessions"
+            "rate__subscription"
         )
 
     @admin.register(SubSTTCreditRateModel)

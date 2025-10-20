@@ -1,36 +1,40 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
-from accounts.permissions import AuthPermission
 from chat.models import ChatSessionModel, ChatMessageModel
-from chat.serializers import ChatMessageSerializer
+from openai import OpenAI
+from xazna import settings
+
+openai_api_key = "EMPTY"
+openai_api_base = settings.LLM_SERVER
+client = OpenAI(api_key=openai_api_key, base_url=openai_api_base)
+
+
+def stream_llm_response(conversation):
+    model = client.models.list().data[0].id
+
+    stream = client.chat.completions.create(
+        model=model,
+        messages=conversation,
+        stream=True,
+        temperature=0.7,
+        max_tokens=200,
+    )
+    for chunk in stream:
+        delta = chunk.choices[0].delta
+        if delta.content:
+            yield delta.content
+
 
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
-    permission_classes = [AuthPermission]
-
-    async def check_permissions(self):
-        for permission_class in self.permission_classes:
-            permission = permission_class()
-            has_perm = await sync_to_async(permission.has_permission)(self.scope)
-            if not has_perm:
-                return False
-        return True
-
     async def connect(self):
         self.session_id = self.scope["url_route"]["kwargs"]["session_id"]
-        self.room_group_name = f"""chat_{self.session_id}"""
-
-        if not await self.check_permissions():
-            await self.close(code=4001)
-            return
-
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        print(f"Disconnected: {close_code}")
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -39,36 +43,43 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if not user_content:
             return
 
-        user_msg = await self.create_message(role="user", content=user_content)
+        await self.create_message(role="user", content=user_content)
 
-        assistant_content = f"""Assistant reply to: {user_content}"""
+        conversation = [
+            {"role": "user", "content": "Senga o'zbek tilida murojaat qilishadi. Sen faqat o'zbek tilida gaplashishing kerak."},
+            {"role": "assistant", "content": "Albatta! Faqat o'zbek tilida javob qaytaraman."},
+            {"role": "user", "content": user_content},
+        ]
 
-        assistant_msg = await self.create_message(role="assistant", content=assistant_content)
+        assistant_content = ""
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                "type": "chat_message",
-                "user": user_msg,
-                "assistant": assistant_msg,
-            },
-        )
+        await self.send(json.dumps({"status": "started"}))
 
-    async def chat_message(self, event):
-        await self.send(text_data=json.dumps({
-            "user": event["user"],
-            "assistant": event["assistant"]
-        }))
+        try:
+            for token in stream_llm_response(conversation):
+                await self.send(json.dumps({
+                    "type": "stream",
+                    "token": token
+                }))
+                assistant_content += token
+
+            await self.create_message(role="assistant", content=assistant_content)
+            await self.send(json.dumps({"status": "completed"}))
+
+
+        except Exception as e:
+            print(e)
+            await self.create_message(role="assistant", error=e, status="failed")
+            await self.send(json.dumps({"status": "failed"}))
+
 
     @sync_to_async
-    def create_message(self, role, content):
+    def create_message(self, role, content=None, status="completed", error=None):
         session = ChatSessionModel.objects.get(id=self.session_id)
-        message = ChatMessageModel.objects.create(
+        ChatMessageModel.objects.create(
             session=session,
             role=role,
             content=content,
-            status="pending",
+            status=status,
+            error=error
         )
-        print(message)
-        return ChatMessageSerializer(message).data
-

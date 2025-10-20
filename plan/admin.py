@@ -9,6 +9,8 @@ class PlanAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "title",
+        "chat_session",
+        "chat_context",
         "monthly__credit",
         "annual__credit",
         "user",
@@ -70,7 +72,6 @@ class ChatRateAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "rate__plan",
-        "max_sessions"
     )
 
 @admin.register(PlanSTTCreditRateModel)

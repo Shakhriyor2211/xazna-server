@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from accounts.permissions import AuthPermission
+from xazna.permissions import AuthPermission
 from finance.models import ExpenseModel
 from shared.models import AudioModel
 from shared.utils import get_audio_duration
@@ -49,7 +49,7 @@ class STTAPIView(APIView):
                     credit_rate.reset= timezone.now() + timedelta(minutes=credit_rate.time)
                     credit_rate.usage = 0
 
-                credit_avail = subscription.credit - subscription.expense
+                credit_avail = subscription.credit - subscription.credit_expense
                 credit_active = min(credit_avail, credit_rate.limit - credit_rate.usage)
                 audio_duration = math.ceil(get_audio_duration(file))
                 credit_usage = audio_duration * plan.credit
@@ -75,7 +75,7 @@ class STTAPIView(APIView):
                         return Response(data={"message": "Request limit exceeded."},
                                         status=status.HTTP_403_FORBIDDEN)
 
-                subscription.expense += credit_usage
+                subscription.credit_expense += credit_usage
                 credit_rate.usage += credit_usage
 
                 file.seek(0)

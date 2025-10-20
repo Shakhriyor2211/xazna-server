@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 from django.core.validators import validate_email
 from rest_framework import serializers
-from accounts.exceptions import AuthException, PermissionException, ValidationException
+from xazna.exceptions import HTTPAuthException, HTTPPermissionException, ValidationException
 from accounts.models import CustomUserModel, EmailConfirmOtpModel, PictureModel
 from finance.serializers import BalanceSerializer
 
@@ -14,7 +14,7 @@ class SignInSerializer(serializers.Serializer):
         try:
             validate_email(value)
         except serializers.ValidationError:
-            raise AuthException(message="Enter a valid email address.", code="invalid_credentials")
+            raise HTTPAuthException(message="Enter a valid email address.", code="invalid_credentials")
         return value
 
     def validate(self, data):
@@ -22,15 +22,15 @@ class SignInSerializer(serializers.Serializer):
         password = data.get("password")
 
         if not email or not password:
-            raise AuthException(message="Email and password are required.", code="invalid_credentials")
+            raise HTTPAuthException(message="Email and password are required.", code="invalid_credentials")
 
         user = authenticate(username=email, password=password)
 
         if user is None:
-            raise AuthException(message="Invalid credentials.", code="invalid_credentials")
+            raise HTTPAuthException(message="Invalid credentials.", code="invalid_credentials")
 
         elif user.is_blocked:
-            raise PermissionException(message="Account is blocked.", code="blocked_user")
+            raise HTTPPermissionException(message="Account is blocked.", code="blocked_user")
 
         return {"user": user}
 

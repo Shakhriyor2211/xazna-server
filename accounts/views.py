@@ -13,7 +13,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from accounts.models import CustomUserModel, SocialAccountModel, EmailConfirmOtpModel, PasswordResetTokenModel, PictureModel
-from accounts.permissions import AuthPermission, AdminPermission
+from xazna.permissions import AuthPermission, AdminPermission
 from accounts.serializers import SignUpSerializer, UserSerializer, SignInSerializer, RefreshTokenSerializer, \
     VerifyTokenSerializer, ResendEmailCodeSerializer, VerifyEmailCodeSerializer, PasswordChangeSerializer, \
     ProfileChangeInfoSerializer, PictureSerializer
@@ -27,7 +27,7 @@ from xazna import settings
 
 
 class UserProfileView(APIView):
-    permission_classes = [AuthPermission]
+    # permission_classes = [AuthPermission]
 
     def get(self, request):
         serializer = UserSerializer(request.user)

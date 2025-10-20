@@ -19,9 +19,9 @@ def create_user(sender, instance, created, **kwargs):
 
         if plan is not None:
             sub = SubscriptionModel.objects.create(user=instance, title=plan.title, credit=plan.monthly.credit,
-                                                   price=plan.monthly.price, discount=plan.monthly.discount)
+                                                   price=plan.monthly.price, discount=plan.monthly.discount,
+                                                   chat_session=plan.chat_session, chat_context=plan.chat_context)
             sub.create_relations(plan)
 
             balance.subscription = sub
             balance.save()
-
