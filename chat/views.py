@@ -1,14 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from xazna.permissions import AuthPermission
 from .models import ChatSessionModel, ChatMessageModel
 from .serializers import ChatSessionSerializer, ChatMessageSerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 class ChatSessionListAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     def get(self, request):
         sessions = ChatSessionModel.objects.filter(user=request.user)
@@ -38,9 +37,8 @@ class ChatSessionListAPIView(APIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
 class ChatSessionDetailAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     def get(self, request, session_id):
         session = ChatSessionModel.objects.filter(id=session_id, user=request.user).first()
@@ -59,7 +57,7 @@ class ChatSessionDetailAPIView(APIView):
 
 
 class ChatMessageListAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     def get(self, request, session_id):
         messages = ChatMessageModel.objects.filter(session__id=session_id, session__user=request.user)

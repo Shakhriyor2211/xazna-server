@@ -9,7 +9,6 @@ from accounts.urls import auth_urlpatterns, user_urlpatterns
 from shared.views import ProtectedAudioStreamView, ProtectedAudioDownloadView
 from xazna import settings
 
-
 class BothHttpAndHttpsSchemaGenerator(OpenAPISchemaGenerator):
     def get_schema(self, request=None, public=False):
         schema = super().get_schema(request, public)

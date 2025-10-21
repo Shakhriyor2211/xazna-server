@@ -2,7 +2,6 @@ from decimal import Decimal
 from drf_yasg import openapi
 from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
-from xazna.permissions import AuthPermission, AdminPermission
 from finance.models import BalanceModel
 from plan.models import PlanModel
 from subscription.models import SubscriptionModel
@@ -16,7 +15,7 @@ from django.db import transaction
 
 
 class SubscriptionRestartAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(operation_description="Restart subscription...")
     def post(self, request):
@@ -72,7 +71,7 @@ class SubscriptionRestartAPIView(APIView):
 
 
 class SubscriptionChangeAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(operation_description='Change subscription...', request_body=SubscriptionChangeSerializer)
     def post(self, request):
@@ -136,7 +135,7 @@ class SubscriptionChangeAPIView(APIView):
 
 
 class SubscriptionManageAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(operation_description='Manage subscription...', request_body=SubscriptionManageSerializer)
     def patch(self, request):
@@ -155,7 +154,7 @@ class SubscriptionManageAPIView(APIView):
 
 
 class SubscriptionListAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(operation_description='STT list...', manual_parameters=[
         openapi.Parameter(
@@ -183,7 +182,8 @@ class SubscriptionListAPIView(APIView):
 
 
 class SubscriptionCheckAPIView(APIView):
-    permission_classes = [AuthPermission, AdminPermission]
+    auth_required = True
+    admin_required = True
 
     def get(self, request):
         with transaction.atomic():

@@ -27,7 +27,6 @@ def stream_llm_response(conversation):
 
 
 
-
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.session_id = self.scope["url_route"]["kwargs"]["session_id"]

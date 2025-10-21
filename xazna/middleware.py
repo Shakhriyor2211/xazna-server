@@ -1,66 +1,126 @@
-from fnmatch import fnmatch
-
-import jwt
-from inspect import iscoroutinefunction
-from asgiref.sync import markcoroutinefunction
+from channels.auth import BaseMiddleware
 from django.contrib.auth.models import AnonymousUser
 from django.http import JsonResponse
-from rest_framework.exceptions import PermissionDenied
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.utils.deprecation import MiddlewareMixin
+from jwt import decode, InvalidTokenError, ExpiredSignatureError
 from accounts.models import CustomUserModel
+from django.http import parse_cookie
 from xazna import settings
 
 
 
-class HTTPAuthMiddleware:
-    async_capable = True
-    sync_capable = False
-    PUBLIC_PATHS = [
-        "/swagger/",
-        "/api/auth/*",
-    ]
 
-    def __init__(self, get_response):
-        self.get_response = get_response
-        if iscoroutinefunction(self.get_response):
-            markcoroutinefunction(self)
+class WSAuthMiddleware(BaseMiddleware):
+    async def __call__(self, scope, receive, send):
+        consumer_class = scope.get("consumer_class")
+        auth_required = getattr(consumer_class, "auth_required", False)
 
-    async def __call__(self, request):
-        print(self._is_public_path(request.path), request.path)
-        if self._is_public_path(request.path):
+        if not auth_required:
+            scope["user"] = AnonymousUser()
+            return await super().__call__(scope, receive, send)
+
+        cookies = {}
+
+        for name, value in scope.get("headers", []):
+            if name == b"cookie":
+                cookies = parse_cookie(value.decode("latin1"))
+                break
+
+        token = cookies.get("access_token")
+
+        if not token:
+            await send({
+                "type": "websocket.close",
+                "code": 4001
+            })
+            return None
+
+        try:
+            payload = decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM],
+                options={"verify_exp": True}
+            )
+
+            user_id = payload.get("user_id") or payload.get("sub")
+            user = CustomUserModel.objects.get(id=user_id)
+
+            if user.is_blocked:
+                await send({
+                    "type": "websocket.close",
+                    "code": 4003
+                })
+
+            admin_required = getattr(consumer_class, "admin_required", False)
+
+            if admin_required and user.role != "admin" and  user.role != "superadmin":
+                await send({
+                    "type": "websocket.close",
+                    "code": 4003
+                })
+
+            scope["user"] = user
+
+        except ExpiredSignatureError:
+            await send({
+                "type": "websocket.close",
+                "code": 4001
+            })
+        except InvalidTokenError:
+            await send({
+                "type": "websocket.close",
+                "code": 4000
+            })
+        except CustomUserModel.DoesNotExist:
+            await send({
+                "type": "websocket.close",
+                "code": 4000
+            })
+
+
+class ViewAuthMiddleware(MiddlewareMixin):
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        view_class = getattr(view_func, "view_class", None)
+        auth_required = getattr(view_class, "auth_required", False) or getattr(view_func, "auth_required", False)
+
+        if not auth_required:
             request._user = AnonymousUser()
-            return await self.get_response(request)
+            return None
 
-        jwt_auth = JWTAuthentication()
         token = request.COOKIES.get('access_token')
 
         if not token:
             return JsonResponse({"message": "Authentication credentials were not provided."}, status=401)
 
+
         try:
-            validated_token = jwt_auth.get_validated_token(token)
-            request.user = jwt_auth.get_user(validated_token)
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+            payload = decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM],
+                options={"verify_exp": True}
+            )
+
             user_id = payload.get("user_id") or payload.get("sub")
-            user = CustomUserModel.objects.filter(id=user_id).first()
+            user = CustomUserModel.objects.get(id=user_id)
 
             if user.is_blocked:
                 return JsonResponse({"message": "Account is blocked."}, status=403)
 
-            request._user = AnonymousUser() if user is None else user
+            admin_required = getattr(view_class, "admin_required", False) or getattr(view_func, "admin_required", False)
 
-        except jwt.ExpiredSignatureError:
-            return JsonResponse({"message": "Token has expired"}, status=401)
-        except jwt.InvalidTokenError:
-            return JsonResponse({"message": "Invalid token"}, status=401)
+            if admin_required and user.role != "admin" and  user.role != "superadmin":
+                return JsonResponse({"message": "Admin privileges required."}, status=403)
+
+            request._user = user
+
+        except ExpiredSignatureError:
+            return JsonResponse({"message": "Token has expired", "code": "expired_token"}, status=401)
+        except InvalidTokenError:
+            return JsonResponse({"message": "Invalid token", "code": "invalid_token"}, status=400)
         except CustomUserModel.DoesNotExist:
-            raise PermissionDenied("User not found")
+            return JsonResponse({"message": "User not found"}, status=400)
 
-        return await self.get_response(request)
 
-    def _is_public_path(self, path: str) -> bool:
-        for pattern in self.PUBLIC_PATHS:
-            if fnmatch(path, pattern):
-                return True
-        return False
 

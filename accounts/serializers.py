@@ -1,9 +1,9 @@
 from django.contrib.auth import authenticate
 from django.core.validators import validate_email
 from rest_framework import serializers
-from xazna.exceptions import HTTPAuthException, HTTPPermissionException, ValidationException
 from accounts.models import CustomUserModel, EmailConfirmOtpModel, PictureModel
 from finance.serializers import BalanceSerializer
+from xazna.exceptions import ForbiddenException, BadRequestException
 
 
 class SignInSerializer(serializers.Serializer):
@@ -14,7 +14,7 @@ class SignInSerializer(serializers.Serializer):
         try:
             validate_email(value)
         except serializers.ValidationError:
-            raise HTTPAuthException(message="Enter a valid email address.", code="invalid_credentials")
+            raise BadRequestException(data={"message": "Enter a valid email address."}, code="invalid_credentials")
         return value
 
     def validate(self, data):
@@ -22,15 +22,15 @@ class SignInSerializer(serializers.Serializer):
         password = data.get("password")
 
         if not email or not password:
-            raise HTTPAuthException(message="Email and password are required.", code="invalid_credentials")
+            raise BadRequestException(data={"message": "Email and password are required."}, code="invalid_credentials")
 
         user = authenticate(username=email, password=password)
 
         if user is None:
-            raise HTTPAuthException(message="Invalid credentials.", code="invalid_credentials")
+            raise BadRequestException(data={"message": "Invalid credentials."}, code="invalid_credentials")
 
         elif user.is_blocked:
-            raise HTTPPermissionException(message="Account is blocked.", code="blocked_user")
+            raise ForbiddenException(data={"message": "Account is blocked."}, code="blocked_user")
 
         return {"user": user}
 
@@ -59,12 +59,12 @@ class SignUpSerializer(serializers.ModelSerializer):
 
     def validate_email(self, email):
         if CustomUserModel.objects.filter(email=email, regular_auth=True).exists():
-            raise ValidationException(data={"email": "Email is already taken."})
+            raise ForbiddenException(data={"email": "Email is already taken."})
         return email
 
     def validate(self, data):
         if data["password"] != data["confirm_password"]:
-            raise ValidationException(data={"confirm_password": "Password and Confirm Password do not match."})
+            raise ForbiddenException(data={"confirm_password": "Password and Confirm Password do not match."})
         return data
 
     def save(self, **kwargs):
@@ -134,15 +134,15 @@ class PasswordChangeSerializer(serializers.Serializer):
     def validate_old_password(self, value):
         user = self.context["request"].user
         if not user.check_password(value):
-            raise ValidationException(data={"old_password": "Old password is incorrect."})
+            raise ForbiddenException(data={"old_password": "Old password is incorrect."})
         return value
 
     def validate(self, attrs):
         if attrs["old_password"] == attrs["new_password"]:
-            raise ValidationException(data={"new_password": "New password cannot be the same as the old password."})
+            raise ForbiddenException(data={"new_password": "New password cannot be the same as the old password."})
 
         elif attrs["new_password"] != attrs["confirm_password"]:
-            raise ValidationException(data={"confirm_password": "Passwords do not match."})
+            raise ForbiddenException(data={"confirm_password": "Passwords do not match."})
 
         return attrs
 

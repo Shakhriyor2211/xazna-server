@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from asgiref.sync import async_to_sync
 from drf_yasg import openapi
-from xazna.permissions import AuthPermission
 from finance.models import ExpenseModel
 from shared.models import AudioModel
 from shared.views import CustomPagination
@@ -19,7 +18,7 @@ from django.db import transaction
 
 
 class TTSSettingsAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     def get(self, request):
         models = list(TTSModelModel.objects.values_list("title", flat=True))
@@ -34,7 +33,7 @@ class TTSSettingsAPIView(APIView):
 
 
 class TTSAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(
         operation_description="Text to speech...",
@@ -111,7 +110,7 @@ class TTSAPIView(APIView):
 
 
 class TTSListAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(operation_description='TTS list...', manual_parameters=[
         openapi.Parameter(
@@ -139,7 +138,7 @@ class TTSListAPIView(APIView):
 
 
 class TTSSearchAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -160,6 +159,8 @@ class TTSSearchAPIView(APIView):
 
 
 class TTSDeleteAPIView(APIView):
+    auth_required = True
+
     @swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
@@ -176,7 +177,7 @@ class TTSDeleteAPIView(APIView):
         try:
             items = request.data.get('items')
             for item in items:
-                TTSModel.objects.get(id=item).delete()
+                TTSModel.objects.get(id=item, user=request.user).delete()
 
             return Response(data={'message': 'Items are successfully deleted.'}, status=status.HTTP_200_OK)
         except:

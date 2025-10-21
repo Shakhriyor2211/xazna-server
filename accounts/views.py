@@ -13,7 +13,6 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from accounts.models import CustomUserModel, SocialAccountModel, EmailConfirmOtpModel, PasswordResetTokenModel, PictureModel
-from xazna.permissions import AuthPermission, AdminPermission
 from accounts.serializers import SignUpSerializer, UserSerializer, SignInSerializer, RefreshTokenSerializer, \
     VerifyTokenSerializer, ResendEmailCodeSerializer, VerifyEmailCodeSerializer, PasswordChangeSerializer, \
     ProfileChangeInfoSerializer, PictureSerializer
@@ -27,7 +26,7 @@ from xazna import settings
 
 
 class UserProfileView(APIView):
-    # permission_classes = [AuthPermission]
+    auth_required = True
 
     def get(self, request):
         serializer = UserSerializer(request.user)
@@ -35,7 +34,8 @@ class UserProfileView(APIView):
 
 
 class UsersView(APIView):
-    permission_classes = [AuthPermission, AdminPermission]
+    auth_required = True
+    admin_required = True
 
     @swagger_auto_schema(operation_description="Users...")
     def get(self, request):
@@ -45,7 +45,8 @@ class UsersView(APIView):
 
 
 class UserDetailView(APIView):
-    permission_classes = [AuthPermission, AdminPermission]
+    auth_required = True
+    admin_required = True
 
     @swagger_auto_schema(operation_description="User detail...")
     def get(self, request, user_id):
@@ -272,9 +273,6 @@ class VerifyEmailCodeView(APIView):
 
 
 class RefreshTokenView(APIView):
-    permission_classes = []
-    authentication_classes = []
-
     @swagger_auto_schema(
         operation_description="Refresh token...",
         request_body=RefreshTokenSerializer
@@ -321,9 +319,6 @@ class RefreshTokenView(APIView):
 
 
 class VerifyTokenView(APIView):
-    permission_classes = []
-    authentication_classes = []
-
     @swagger_auto_schema(
         operation_description="Verify access token...",
         request_body=VerifyTokenSerializer
@@ -680,7 +675,7 @@ class PasswordResetConfirmView(APIView):
 
 
 class PasswordChangeView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(
         operation_description="Password change..",
@@ -702,7 +697,7 @@ class PasswordChangeView(APIView):
 
 
 class ProfileChangeInfoView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(
         operation_description="Profile info change..",
@@ -751,8 +746,7 @@ class ProfileChangeInfoView(APIView):
 
 class ProfileChangeImageView(APIView):
     parser_classes = [MultiPartParser, FormParser]
-
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(
         operation_description="Profile image change..",

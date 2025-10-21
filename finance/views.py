@@ -1,6 +1,5 @@
 from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
-from xazna.permissions import AuthPermission
 from finance.models import TransactionModel, ExpenseModel
 from finance.serializers import BalanceManageSerializer, TransactionSerializer, ExpenseListSerializer
 from rest_framework import status
@@ -10,7 +9,7 @@ from django.db import transaction
 
 
 class ExpenseListAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     def get(self, request):
         ordering = request.query_params.get('ordering', '-created_at')
@@ -27,7 +26,7 @@ class ExpenseListAPIView(APIView):
 
 
 class BalanceTopUpAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(operation_description="Top up balance...", request_body=TransactionSerializer)
     def post(self, request):
@@ -42,7 +41,7 @@ class BalanceTopUpAPIView(APIView):
 
 
 class BalanceManageAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(operation_description='Manage subscription...', request_body=BalanceManageSerializer)
     def patch(self, request):
@@ -61,7 +60,7 @@ class BalanceManageAPIView(APIView):
 
 
 class TransactionListAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     def get(self, request):
         ordering = request.query_params.get('ordering', '-created_at')

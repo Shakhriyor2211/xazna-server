@@ -7,7 +7,6 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from xazna.permissions import AuthPermission
 from finance.models import ExpenseModel
 from shared.models import AudioModel
 from shared.utils import get_audio_duration
@@ -24,8 +23,8 @@ client = OpenAI(base_url=settings.STT_SERVER, api_key="EMPTY")
 
 
 class STTAPIView(APIView):
-    permission_classes = [AuthPermission]
     parser_classes = [MultiPartParser]
+    auth_required = True
 
     @swagger_auto_schema(operation_description='STT list...', request_body=STTSerializer)
     def post(self, request):
@@ -118,7 +117,7 @@ class STTAPIView(APIView):
 
 
 class STTListAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(operation_description='STT list...', manual_parameters=[
         openapi.Parameter(
@@ -146,7 +145,7 @@ class STTListAPIView(APIView):
 
 
 class STTChangeAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(
         operation_description="STT change...",
@@ -167,6 +166,8 @@ class STTChangeAPIView(APIView):
 
 
 class STTDeleteAPIView(APIView):
+    auth_required = True
+
     @swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
@@ -183,7 +184,7 @@ class STTDeleteAPIView(APIView):
         try:
             items = request.data.get('items')
             for item in items:
-                STTModel.objects.get(id=item).delete()
+                STTModel.objects.get(id=item, user=request.user).delete()
 
             return Response(data={'message': 'Items are successfully deleted.'}, status=status.HTTP_200_OK)
         except:
@@ -191,7 +192,7 @@ class STTDeleteAPIView(APIView):
 
 
 class STTSearchAPIView(APIView):
-    permission_classes = [AuthPermission]
+    auth_required = True
 
     @swagger_auto_schema(
         manual_parameters=[

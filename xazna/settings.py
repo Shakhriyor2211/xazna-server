@@ -113,8 +113,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "xazna.middleware.HTTPAuthMiddleware",
-    # "xazna.middleware.CoreMiddleware",
+    "xazna.middleware.ViewAuthMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 
