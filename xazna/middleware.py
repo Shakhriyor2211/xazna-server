@@ -6,8 +6,7 @@ from jwt import decode, InvalidTokenError, ExpiredSignatureError
 from accounts.models import CustomUserModel
 from django.http import parse_cookie
 from xazna import settings
-
-
+from chat.routing import chat_ws_urlpatterns
 
 
 class WSAuthMiddleware(BaseMiddleware):

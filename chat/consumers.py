@@ -1,9 +1,10 @@
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
-from chat.models import ChatSessionModel, ChatMessageModel
 from openai import OpenAI
+
+from chat.models import ChatSessionModel, ChatMessageModel
 from xazna import settings
+from xazna.consumers import BaseWebsocketConsumer
 
 openai_api_key = "EMPTY"
 openai_api_base = settings.LLM_SERVER
@@ -26,16 +27,11 @@ def stream_llm_response(conversation):
             yield delta.content
 
 
-
-class ChatConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        self.session_id = self.scope["url_route"]["kwargs"]["session_id"]
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        print(f"Disconnected: {close_code}")
+class ChatConsumer(BaseWebsocketConsumer):
+    auth_required = True
 
     async def receive(self, text_data):
+        self.session_id = self.scope["url_route"]["kwargs"]["session_id"]
         data = json.loads(text_data)
         user_content = data.get("content")
 
@@ -45,7 +41,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.create_message(role="user", content=user_content)
 
         conversation = [
-            {"role": "user", "content": "Senga o'zbek tilida murojaat qilishadi. Sen faqat o'zbek tilida gaplashishing kerak."},
+            {"role": "user",
+             "content": "Senga o'zbek tilida murojaat qilishadi. Sen faqat o'zbek tilida gaplashishing kerak."},
             {"role": "assistant", "content": "Albatta! Faqat o'zbek tilida javob qaytaraman."},
             {"role": "user", "content": user_content},
         ]
@@ -82,3 +79,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             status=status,
             error=error
         )
+
+    async def disconnect(self, close_code):
+        print(f"Disconnected: {close_code}")

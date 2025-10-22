@@ -109,7 +109,16 @@ class SignInView(APIView):
             user_instance = serializer.validated_data["user"]
 
             if not user_instance.is_active:
-                email_otp = EmailConfirmOtpModel.objects.get(user=user_instance)
+                email_otp = EmailConfirmOtpModel.objects.filter(user=user_instance).first()
+
+                if email_otp is None :
+                    email_otp = EmailConfirmOtpModel.objects.create(user=user_instance)
+                    email_otp.code, email_otp.expires_at = generate_email_otp(email_otp.code)
+                    email_otp.remaining_resends -= 1
+                    email_otp.task_id = send_email_confirmation.delay(email_otp.id)
+                    email_otp.save()
+
+                    return Response(data={"otp_id": email_otp.id}, status=status.HTTP_200_OK)
 
                 if email_otp.last_attempt + timedelta(minutes=settings.EMAIL_ATTEMPT_BLOCK_TIME) <= timezone.now():
                     email_otp.remaining_attempts = settings.EMAIL_MAX_ATTEMPTS
