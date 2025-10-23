@@ -14,11 +14,13 @@ class ChatSessionModel(BaseModel):
     )
     user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
+    first_content = models.TextField()
 
     class Meta:
         verbose_name = "Session"
         verbose_name_plural = "Sessions"
         db_table = "chat_session"
+        ordering = ["-created_at"]
 
     def __str__(self):
         return self.title

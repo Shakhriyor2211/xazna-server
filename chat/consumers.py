@@ -1,7 +1,9 @@
+import asyncio
 import json
+from time import sleep
+
 from asgiref.sync import sync_to_async
 from openai import OpenAI
-
 from chat.models import ChatSessionModel, ChatMessageModel
 from xazna import settings
 from xazna.consumers import BaseWebsocketConsumer
@@ -28,15 +30,18 @@ def stream_llm_response(conversation):
 
 
 class ChatConsumer(BaseWebsocketConsumer):
-    auth_required = True
+    # auth_required = True
 
     async def receive(self, text_data):
         self.session_id = self.scope["url_route"]["kwargs"]["session_id"]
+        # user = self.scope["user"]
+
         data = json.loads(text_data)
         user_content = data.get("content")
 
         if not user_content:
             return
+
 
         await self.create_message(role="user", content=user_content)
 
@@ -53,7 +58,9 @@ class ChatConsumer(BaseWebsocketConsumer):
 
         try:
             for token in stream_llm_response(conversation):
+                await asyncio.sleep(0.02)
                 await self.send(json.dumps({
+                    "status": "pending",
                     "type": "stream",
                     "token": token
                 }))
@@ -62,9 +69,8 @@ class ChatConsumer(BaseWebsocketConsumer):
             await self.create_message(role="assistant", content=assistant_content)
             await self.send(json.dumps({"status": "completed"}))
 
-
+            print(assistant_content)
         except Exception as e:
-            print(e)
             await self.create_message(role="assistant", error=e, status="failed")
             await self.send(json.dumps({"status": "failed"}))
 

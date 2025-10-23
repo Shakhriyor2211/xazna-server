@@ -19,4 +19,9 @@ class ChatSessionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ChatSessionModel
-        fields = ["id", "title", "messages", "created_at", "updated_at"]
+        fields = ["id", "title", "first_content", "messages", "created_at", "updated_at"]
+        extra_kwargs = {
+            "title": {"read_only": True},
+            "created_at": {"read_only": True},
+            "updated_at": {"read_only": True}
+        }
