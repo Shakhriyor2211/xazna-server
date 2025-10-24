@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from time import sleep
 
 from asgiref.sync import sync_to_async
@@ -30,11 +31,21 @@ def stream_llm_response(conversation):
 
 
 class ChatConsumer(BaseWebsocketConsumer):
-    # auth_required = True
+    auth_required = True
 
-    async def receive(self, text_data):
-        self.session_id = self.scope["url_route"]["kwargs"]["session_id"]
-        # user = self.scope["user"]
+    async def handle_receive(self, text_data):
+        user = self.scope["user"]
+        print(user)
+        self.session = ChatSessionModel.objects.filter(id=self.scope["url_route"]["kwargs"]["session_id"], user=user).first()
+
+        if self.session is None:
+            await self.send(json.dumps({
+                "status": 404,
+                "type": "error",
+                "message": "Session not found."
+            }))
+
+            return
 
         data = json.loads(text_data)
         user_content = data.get("content")
@@ -57,19 +68,26 @@ class ChatConsumer(BaseWebsocketConsumer):
         await self.send(json.dumps({"status": "started"}))
 
         try:
+            min_interval = 0.02
+            last_sent_time = 0
             for token in stream_llm_response(conversation):
-                await asyncio.sleep(0.02)
+                now = time.monotonic()
+                elapsed = now - last_sent_time
+                if elapsed < min_interval:
+                    await asyncio.sleep(min_interval - elapsed)
+
                 await self.send(json.dumps({
                     "status": "pending",
                     "type": "stream",
                     "token": token
                 }))
                 assistant_content += token
+                last_sent_time = time.monotonic()
+
 
             await self.create_message(role="assistant", content=assistant_content)
             await self.send(json.dumps({"status": "completed"}))
 
-            print(assistant_content)
         except Exception as e:
             await self.create_message(role="assistant", error=e, status="failed")
             await self.send(json.dumps({"status": "failed"}))
@@ -77,9 +95,8 @@ class ChatConsumer(BaseWebsocketConsumer):
 
     @sync_to_async
     def create_message(self, role, content=None, status="completed", error=None):
-        session = ChatSessionModel.objects.get(id=self.session_id)
         ChatMessageModel.objects.create(
-            session=session,
+            session=self.session,
             role=role,
             content=content,
             status=status,

@@ -1,13 +1,10 @@
 from channels.auth import BaseMiddleware
 from django.contrib.auth.models import AnonymousUser
-from django.http import JsonResponse
+from django.http import JsonResponse, parse_cookie
 from django.utils.deprecation import MiddlewareMixin
 from jwt import decode, InvalidTokenError, ExpiredSignatureError
 from accounts.models import CustomUserModel
-from django.http import parse_cookie
 from xazna import settings
-from chat.routing import chat_ws_urlpatterns
-
 
 class WSAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
@@ -78,6 +75,8 @@ class WSAuthMiddleware(BaseMiddleware):
             })
 
 
+
+
 class ViewAuthMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
         view_class = getattr(view_func, "view_class", None)
@@ -90,7 +89,7 @@ class ViewAuthMiddleware(MiddlewareMixin):
         token = request.COOKIES.get('access_token')
 
         if not token:
-            return JsonResponse({"message": "Authentication credentials were not provided."}, status=401)
+            return JsonResponse({"message": "Authentication credentials were not provided.", "code": "auth_required"}, status=401)
 
 
         try:
@@ -105,21 +104,24 @@ class ViewAuthMiddleware(MiddlewareMixin):
             user = CustomUserModel.objects.get(id=user_id)
 
             if user.is_blocked:
-                return JsonResponse({"message": "Account is blocked."}, status=403)
+                return JsonResponse({"message": "Account is blocked.", "code": "account_blocked"}, status=403)
 
             admin_required = getattr(view_class, "admin_required", False) or getattr(view_func, "admin_required", False)
 
             if admin_required and user.role != "admin" and  user.role != "superadmin":
-                return JsonResponse({"message": "Admin privileges required."}, status=403)
+                return JsonResponse({"message": "Admin privileges required.", "code": "privileges_required"}, status=403)
 
             request._user = user
 
         except ExpiredSignatureError:
-            return JsonResponse({"message": "Token has expired", "code": "expired_token"}, status=401)
+            return JsonResponse({"message": "Token has expired.", "code": "expired_token"}, status=401)
         except InvalidTokenError:
-            return JsonResponse({"message": "Invalid token", "code": "invalid_token"}, status=400)
+            return JsonResponse({"message": "Invalid token.", "code": "invalid_token"}, status=400)
         except CustomUserModel.DoesNotExist:
-            return JsonResponse({"message": "User not found"}, status=400)
+            return JsonResponse({"message": "User not found.", "code": "not_found"}, status=404)
+
+
+
 
 
 

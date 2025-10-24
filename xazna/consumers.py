@@ -1,3 +1,4 @@
+import json
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib.auth.models import AnonymousUser
@@ -8,13 +9,12 @@ from xazna import settings
 
 
 class BaseWebsocketConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        await self.accept()
+    async def _validate(self):
         auth_required = getattr(self, "auth_required", False)
 
         if not auth_required:
             self.scope["user"] = AnonymousUser()
-            return None
+            return True
 
         cookies = {}
 
@@ -26,7 +26,7 @@ class BaseWebsocketConsumer(AsyncWebsocketConsumer):
         token = cookies.get("access_token")
 
         if not token:
-            await self.close(code=4001)
+            await self.close(code=4400)
 
         try:
             payload = decode(
@@ -40,18 +40,48 @@ class BaseWebsocketConsumer(AsyncWebsocketConsumer):
             user = await database_sync_to_async(CustomUserModel.objects.get)(id=user_id)
 
             if user.is_blocked:
-                await self.close(code=4003)
+                await self.send(json.dumps({
+                    "status": 403,
+                    "type": "error",
+                    "message": "Account is blocked."
+                }))
+                return False
 
             admin_required = getattr(self, "admin_required", False)
 
             if admin_required and user.role != "admin" and user.role != "superadmin":
-                await self.close(code=4003)
+                await self.send(json.dumps({
+                    "status": 403,
+                    "type": "error",
+                    "message": "Admin privileges required."
+                }))
+                return False
 
             self.scope["user"] = user
 
         except ExpiredSignatureError:
-            await self.close(code=4001)
+            await self.send(json.dumps({
+                "status": 401,
+                "type": "error",
+                "message": "Token has expired."
+            }))
+            return False
+
         except InvalidTokenError:
-            await self.close(code=4000)
+            await self.close(code=4400)
+            return False
         except CustomUserModel.DoesNotExist:
-            await self.close(code=4000)
+            await self.close(code=4404)
+            return False
+
+    async def connect(self):
+        await self.accept()
+        await self._validate()
+
+    async def receive(self, text_data=None, bytes_data=None):
+        is_valid = await self._validate()
+        if not is_valid:
+            return
+
+        if hasattr(self, "handle_receive"):
+            await self.handle_receive(text_data, bytes_data)
