@@ -1,10 +1,10 @@
 from datetime import timedelta
+import numpy as np
 from django.utils import timezone
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from asgiref.sync import async_to_sync
 from drf_yasg import openapi
 from finance.models import ExpenseModel
 from shared.models import AudioModel
@@ -14,6 +14,7 @@ from tts.serializers import TTSSerializer, TTSListSerializer
 from shared.utils import send_post_request, generate_audio
 from xazna import settings
 from django.db import transaction
+import tritonclient.grpc as triton_grpc
 
 
 
@@ -85,11 +86,17 @@ class TTSAPIView(APIView):
                 subscription.credit_expense += credit_usage
                 credit_rate.usage += credit_usage
 
-                res = async_to_sync(send_post_request)({"text": data["text"], "emotion": data.get("emotion")},
-                                                       settings.TTS_SERVER)
+                client = triton_grpc.InferenceServerClient(url=settings.TTS_TRITON_SERVER, verbose=False)
+                input_data = np.array([[data["text"].encode('utf-8')]], dtype=object)
+                inputs = [triton_grpc.InferInput("target_text", [1, 1], "BYTES")]
+                inputs[0].set_data_from_numpy(input_data)
+
+                outputs = [triton_grpc.InferRequestedOutput("waveform")]
+                res = client.infer(model_name="f5_tts", inputs=inputs, outputs=outputs)
+                audio_chunk = np.array(res.as_numpy("waveform")[0], dtype=np.float32)
 
                 audio_instance = AudioModel.objects.create(user=request.user,
-                                                           file=generate_audio(res.content, fmt=data["format"]))
+                                                           file=generate_audio(audio_chunk, fmt=data["format"]))
 
                 tts_instance = serializer.save(audio=audio_instance, user=request.user)
 

@@ -2,8 +2,8 @@ import os
 import httpx
 from django.core.files import File
 from pydub import AudioSegment
-
 from xazna import settings
+import soundfile as sf
 
 
 async def send_post_request(payload, url, request_type="json"):
@@ -18,15 +18,13 @@ async def send_post_request(payload, url, request_type="json"):
             return response
 
 
-def generate_audio(bytes, fmt):
+def generate_audio(chunks, fmt):
     temp_dir = os.path.join(settings.MEDIA_ROOT, "temp")
-    temp_path = os.path.join(temp_dir, f"""audio.wav""")
-    output_path = os.path.join(temp_dir, f"""audio.{fmt}""")
+    os.makedirs(temp_dir, exist_ok=True)  # ✅ fix: create actual temp dir
 
-    os.makedirs(os.path.dirname(temp_dir), exist_ok=True)
-
-    with open(temp_path, "wb") as f:
-        f.write(bytes)
+    temp_path = os.path.join(temp_dir, "audio.wav")
+    output_path = os.path.join(temp_dir, f"audio.{fmt}")
+    sf.write(temp_path, chunks, 24000, subtype="PCM_16")
 
     try:
         if fmt == "wav":

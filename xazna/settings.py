@@ -46,7 +46,7 @@ CELERY_BEAT_SCHEDULE = {
     }
 }
 
-TTS_SERVER = os.getenv("TTS_SERVER")
+TTS_TRITON_SERVER = os.getenv("TTS_TRITON_SERVER")
 STT_SERVER = os.getenv("STT_SERVER")
 LLM_SERVER = os.getenv("LLM_SERVER")
 
