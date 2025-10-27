@@ -35,8 +35,6 @@ def generate_audio(chunks, fmt):
 
         return File(open(output_path, "rb"), name=f"""audio.{fmt}""")
 
-
-
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
