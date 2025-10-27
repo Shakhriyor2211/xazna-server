@@ -20,7 +20,7 @@ async def send_post_request(payload, url, request_type="json"):
 
 def generate_audio(chunks, fmt):
     temp_dir = os.path.join(settings.MEDIA_ROOT, "temp")
-    os.makedirs(temp_dir, exist_ok=True)  # ✅ fix: create actual temp dir
+    os.makedirs(temp_dir, exist_ok=True)
 
     temp_path = os.path.join(temp_dir, "audio.wav")
     output_path = os.path.join(temp_dir, f"audio.{fmt}")
@@ -36,9 +36,9 @@ def generate_audio(chunks, fmt):
         return File(open(output_path, "rb"), name=f"""audio.{fmt}""")
 
     finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        os.remove(temp_path)
 
 
 def get_audio_duration(file):
