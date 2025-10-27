@@ -13,7 +13,7 @@ class BaseWebsocketConsumer(AsyncWebsocketConsumer):
         auth_required = getattr(self, "auth_required", False)
 
         if not auth_required:
-            self.scope["user"] = AnonymousUser()
+            self.user = AnonymousUser()
             return True
 
         cookies = {}
@@ -57,7 +57,7 @@ class BaseWebsocketConsumer(AsyncWebsocketConsumer):
                 }))
                 return False
 
-            self.scope["user"] = user
+            self.user = user
 
         except ExpiredSignatureError:
             await self.send(json.dumps({
@@ -74,14 +74,28 @@ class BaseWebsocketConsumer(AsyncWebsocketConsumer):
             await self.close(code=4404)
             return False
 
+        return  True
+
+
     async def connect(self):
         await self.accept()
-        await self._validate()
-
-    async def receive(self, text_data=None, bytes_data=None):
         is_valid = await self._validate()
+
         if not is_valid:
             return
 
-        if hasattr(self, "handle_receive"):
-            await self.handle_receive(text_data, bytes_data)
+        if hasattr(self, "on_connect"):
+            await self.on_connect()
+
+    async def receive(self, text_data=None):
+        is_valid = await self._validate()
+
+        if not is_valid:
+            return
+
+        if hasattr(self, "on_receive"):
+            await self.on_receive(text_data)
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "on_disconnect"):
+            await self.on_disconnect(close_code)

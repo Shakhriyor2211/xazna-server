@@ -3,10 +3,9 @@ import re
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import ChatSessionModel, ChatMessageModel
+from .models import ChatSessionModel
 from .serializers import ChatSessionSerializer, ChatMessageSerializer
 from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 
 class ChatSessionListAPIView(APIView):
     auth_required = True
@@ -15,8 +14,6 @@ class ChatSessionListAPIView(APIView):
         sessions = ChatSessionModel.objects.filter(user=request.user)
         serializer = ChatSessionSerializer(sessions, many=True)
         return Response(serializer.data)
-
-
 
 class ChatSessionDetailAPIView(APIView):
     auth_required = True
@@ -28,7 +25,13 @@ class ChatSessionDetailAPIView(APIView):
         serializer = ChatSessionSerializer(session)
         return Response(serializer.data)
 
+class ChatMessageListAPIView(APIView):
+    auth_required = True
 
+    def get(self, request, session_id):
+        session = ChatSessionModel.objects.filter(id=session_id, user=request.user).first()
+        serializer = ChatMessageSerializer(session.messages, many=True)
+        return Response(data={"contents": serializer.data, "first_content": session.first_content}, status=status.HTTP_200_OK)
 
 class ChatSessionAPIView(APIView):
     auth_required = True
@@ -68,6 +71,7 @@ class ChatSessionAPIView(APIView):
         except Exception as e:
             print(e)
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
     def delete(self, request, session_id):
         session = ChatSessionModel.objects.filter(id=session_id, user=request.user).first()
