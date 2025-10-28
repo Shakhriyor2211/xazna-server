@@ -1,3 +1,5 @@
+import os
+import uuid
 from datetime import timedelta
 import numpy as np
 from django.utils import timezone
@@ -11,7 +13,7 @@ from shared.models import AudioModel
 from shared.views import CustomPagination
 from tts.models import TTSModel, TTSModelModel, TTSEmotionModel, TTSAudioFormatModel
 from tts.serializers import TTSSerializer, TTSListSerializer
-from shared.utils import send_post_request, generate_audio
+from shared.utils import generate_audio
 from xazna import settings
 from django.db import transaction
 import tritonclient.grpc as triton_grpc
@@ -91,12 +93,16 @@ class TTSAPIView(APIView):
                 inputs = [triton_grpc.InferInput("target_text", [1, 1], "BYTES")]
                 inputs[0].set_data_from_numpy(input_data)
 
+
                 outputs = [triton_grpc.InferRequestedOutput("waveform")]
                 res = client.infer(model_name="f5_tts", inputs=inputs, outputs=outputs)
-                audio_chunk = np.array(res.as_numpy("waveform")[0], dtype=np.float32)
+
+                audio_chunks = (res.as_numpy("waveform")[0] * 32767).astype(np.int16)
+
 
                 audio_instance = AudioModel.objects.create(user=request.user,
-                                                           file=generate_audio(audio_chunk, fmt=data["format"]))
+                                                           file=generate_audio(audio_chunks, data["format"]))
+
 
                 tts_instance = serializer.save(audio=audio_instance, user=request.user)
 
