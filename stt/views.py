@@ -20,7 +20,7 @@ from django.db import transaction
 from openai import OpenAI
 
 
-client = OpenAI(base_url=settings.STT_SERVER, api_key="EMPTY")
+client = OpenAI(base_url=settings.STT_SERVER, api_key=settings.STT_SERVER_API_KEY)
 
 
 class STTAPIView(APIView):

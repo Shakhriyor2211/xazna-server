@@ -14,7 +14,6 @@ class ChatSessionModel(BaseModel):
     )
     user = models.ForeignKey("accounts.CustomUserModel", on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
-    first_content = models.TextField()
     is_streaming = models.BooleanField(default=False)
 
     class Meta:

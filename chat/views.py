@@ -1,9 +1,10 @@
 import re
 
+from drf_yasg import openapi
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import ChatSessionModel
+from .models import ChatSessionModel, ChatMessageModel
 from .serializers import ChatSessionSerializer, ChatMessageSerializer
 from drf_yasg.utils import swagger_auto_schema
 
@@ -31,39 +32,59 @@ class ChatMessageListAPIView(APIView):
     def get(self, request, session_id):
         session = ChatSessionModel.objects.filter(id=session_id, user=request.user).first()
         serializer = ChatMessageSerializer(session.messages, many=True)
-        return Response(data={"contents": serializer.data, "first_content": session.first_content}, status=status.HTTP_200_OK)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 class ChatSessionAPIView(APIView):
     auth_required = True
 
     @swagger_auto_schema(
-        operation_summary="Create chat session",
-        operation_description="Create a new chat session for the authenticated user.",
-        request_body=ChatSessionSerializer,
-        responses={201: ChatSessionSerializer, 400: "Bad Request"},
+        operation_description="Create a new chat session and first user message",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(type=openapi.TYPE_STRING, description="User message to start chat"),
+            },
+            required=["message"],
+        ),
+        responses={
+            201: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                    "title": openapi.Schema(type=openapi.TYPE_STRING),
+                    "created_at": openapi.Schema(type=openapi.TYPE_STRING, format="date-time"),
+                    "updated_at": openapi.Schema(type=openapi.TYPE_STRING, format="date-time"),
+                }
+            ),
+            400: "Bad Request",
+        }
     )
     def post(self, request):
         try:
-            serializer = ChatSessionSerializer(data=request.data)
+            message = request.data.get("message")
 
-            if serializer.is_valid():
-                first_content = serializer.validated_data.get("first_content")
-                words = re.split(r"\s+|(?=[.,;?!])|(?<=[.,;])", first_content)
+            if not message:
+                return Response({"detail": "Message is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-                title = ""
+            words = re.split(r"\s+|(?=[.,;?!])|(?<=[.,;])", message)
 
-                for i, word in enumerate(words):
-                    if i > 0 and len(word) + len(title) > 20:
-                        break
+            title = ""
 
-                    if i > 0 and not word in [".", ",", ";", "?", "!"]:
-                        title += " "
+            for i, word in enumerate(words):
+                if i > 0 and len(word) + len(title) > 20:
+                    break
 
-                    title += word
+                if i > 0 and not word in [".", ",", ";", "?", "!"]:
+                    title += " "
 
+                title += word
 
-                serializer.save(user=request.user, title=title)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            session = ChatSessionModel.objects.create(user=request.user, title=title, is_streaming=True)
+
+            ChatMessageModel.objects.create(content=message, role="user", session=session)
+
+            return Response(data={"slug": session.id}, status=status.HTTP_201_CREATED)
+
 
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
