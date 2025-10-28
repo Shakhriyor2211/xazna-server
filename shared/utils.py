@@ -28,3 +28,18 @@ def generate_audio(chunks, fmt):
 def get_audio_duration(file):
     audio = AudioSegment.from_file(file)
     return len(audio) / 1000
+
+
+def text_decode(match):
+    letters = {
+        "Ğ": "G'",
+        "ğ": "g'",
+        "Õ": "O'",
+        "õ": "o'",
+        "Ş": "Sh",
+        "ş": "sh",
+        "Ç": "Ch",
+        "ç": "ch"
+    }
+
+    return letters[match.group()]

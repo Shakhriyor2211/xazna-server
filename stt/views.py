@@ -1,4 +1,5 @@
 import math
+import re
 from datetime import timedelta
 from io import BytesIO
 from drf_yasg import openapi
@@ -26,7 +27,7 @@ class STTAPIView(APIView):
     parser_classes = [MultiPartParser]
     auth_required = True
 
-    @swagger_auto_schema(operation_description='STT list...', request_body=STTSerializer)
+    @swagger_auto_schema(operation_description='STT generate...', request_body=STTSerializer)
     def post(self, request):
         try:
             with transaction.atomic():
@@ -97,6 +98,8 @@ class STTAPIView(APIView):
                 for event in transcript:
                     chunk = event.choices[0]["delta"]["content"]
                     text += chunk
+
+                text = re.sub(r"(Ğ|ğ|Õ|õ|Ş|ş|Ç|ç)", text_decode, text)
 
                 audio_instance = AudioModel.objects.create(user=request.user, file=file)
                 stt_instance = STTModel.objects.create(text=text, user=request.user, audio=audio_instance)
