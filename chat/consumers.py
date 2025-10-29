@@ -26,6 +26,7 @@ class ChatConsumer(BaseWebsocketConsumer):
         self.contents = await database_sync_to_async(lambda: ChatMessageSerializer(
             self.session.messages
             .exclude(role="system")
+            .order_by("created_at")
             .values("role", "content"),
             many=True
         ).data)()
@@ -38,11 +39,26 @@ class ChatConsumer(BaseWebsocketConsumer):
             await database_sync_to_async(self.session.save)()
             self.stream_task = asyncio.create_task(self._stream_llm())
 
-    async def on_receive(self, text_data):
-        self.assistant_content = ""
+    async def on_receive(self, request):
+        data = json.loads(request)
+        action = data.get("action")
 
+        if action == "cancel":
+            if self.stream_task is not None and not self.stream_task.done():
+                self.stream_task.cancel()
+
+                if self.assistant_content != "":
+                   await self._create_message(role="assistant", content=self.assistant_content)
+                   self.contents.append({"role": "assistant", "content": self.assistant_content})
+                   self.assistant_content = ""
+            return
+
+
+        self.assistant_content = ""
         self.session.is_streaming = True
+
         await database_sync_to_async(self.session.save)()
+
         if self.session is None:
             await self.send(json.dumps({
                 "status": 404,
@@ -52,7 +68,6 @@ class ChatConsumer(BaseWebsocketConsumer):
 
             return
 
-        data = json.loads(text_data)
         user_content = data.get("content")
 
         if not user_content:
@@ -60,6 +75,9 @@ class ChatConsumer(BaseWebsocketConsumer):
 
         last_message = self.contents[-1] if self.contents else None
         if last_message is not None and last_message["role"] == "user":
+            print(self.contents)
+
+            print(last_message)
             await self._create_message(role="assistant", error="Failed to connect llm.")
             self.contents.append({"role": "assistant", "content": None})
 
@@ -69,8 +87,9 @@ class ChatConsumer(BaseWebsocketConsumer):
 
         self.stream_task = asyncio.create_task(self._stream_llm())
 
+
     async def _stream_llm(self):
-        min_interval = 0.02
+        min_interval = 0.005
         last_sent_time = 0
 
         try:
@@ -96,18 +115,20 @@ class ChatConsumer(BaseWebsocketConsumer):
                 delta = chunk.choices[0].delta
 
                 if delta.content:
-                    now = time.monotonic()
-                    elapsed = now - last_sent_time
-                    if elapsed < min_interval:
-                        await asyncio.sleep(min_interval - elapsed)
+                    for ch in delta.content:
+                        now = time.monotonic()
+                        elapsed = now - last_sent_time
+                        if elapsed < min_interval:
+                            await asyncio.sleep(min_interval - elapsed)
 
-                    await self.send(json.dumps({
-                        "status": "pending",
-                        "type": "stream",
-                        "token": delta.content,
-                    }))
+                        await self.send(json.dumps({
+                            "status": "pending",
+                            "type": "stream",
+                            "token": ch
+                        }))
+                        last_sent_time = time.monotonic()
+
                     self.assistant_content += delta.content
-                    last_sent_time = time.monotonic()
 
             self.contents.append({"role": "assistant", "content": self.assistant_content})
             await self._create_message(role="assistant", content=self.assistant_content)

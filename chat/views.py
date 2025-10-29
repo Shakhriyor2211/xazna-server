@@ -12,7 +12,7 @@ class ChatSessionListAPIView(APIView):
     auth_required = True
 
     def get(self, request):
-        sessions = ChatSessionModel.objects.filter(user=request.user)
+        sessions = ChatSessionModel.objects.filter(user=request.user).order_by("-created_at")
         serializer = ChatSessionSerializer(sessions, many=True)
         return Response(serializer.data)
 
@@ -31,7 +31,8 @@ class ChatMessageListAPIView(APIView):
 
     def get(self, request, session_id):
         session = ChatSessionModel.objects.filter(id=session_id, user=request.user).first()
-        serializer = ChatMessageSerializer(session.messages, many=True)
+        messages = session.messages.order_by("created_at")
+        serializer = ChatMessageSerializer(messages, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 class ChatSessionAPIView(APIView):
