@@ -1,5 +1,3 @@
-import re
-
 from drf_yasg import openapi
 from rest_framework.views import APIView
 from rest_framework.response import Response

@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from finance.models import ExpenseModel
 from shared.models import AudioModel
-from shared.utils import get_audio_duration
+from shared.utils import get_audio_duration, text_decode, convert_to_wav
 from shared.views import CustomPagination
 from stt.models import STTModel, STTModelModel
 from stt.serializers import STTListSerializer, STTChangeSerializer, STTSerializer
@@ -78,13 +78,7 @@ class STTAPIView(APIView):
                 subscription.credit_expense += credit_usage
                 credit_rate.usage += credit_usage
 
-                file.seek(0)
-                file_bytes = file.read()
-
-                if not file_bytes:
-                    return Response({"message": "Uploaded file is empty"}, status=400)
-
-                audio = BytesIO(file_bytes)
+                audio = convert_to_wav(file)
 
                 transcript = client.audio.transcriptions.create(
                     model="./largev6uz",

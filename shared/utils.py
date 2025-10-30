@@ -72,3 +72,23 @@ def generate_title(message):
         title += word
 
     return title
+
+
+def convert_to_wav(audio_file):
+    audio_file.seek(0)
+    audio_bytes = audio_file.read()
+
+    audio_io = BytesIO(audio_bytes)
+
+    original_format = audio_file.name.split('.')[-1].lower()
+
+    audio = AudioSegment.from_file(audio_io, format=original_format)
+
+    wav_io = BytesIO()
+    audio.set_frame_rate(44100).set_channels(1).set_sample_width(2).export(
+        wav_io, format="wav"
+    )
+
+    wav_io.seek(0)
+
+    return wav_io
